@@ -5,6 +5,7 @@ using RGiesecke.DllExport;
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Pipes;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Management;
@@ -85,14 +86,6 @@ namespace NetHook.Core
             Console.ReadLine();
         }
 
-        [DllExport("DllMain", CallingConvention.StdCall)]
-        public static void Main2()
-        {
-            Console.WriteLine("Main2");
-            Console.WriteLine("DLL MAIN (Only DLL_PROCESS_ATTACH) :D");
-            //File.WriteAllText(@"C:\Users\GTR\source\repos\NetHook\NetHook\NetHook.Core\bin\qe", "asd");
-        }
-
         private static void Test4()
         {
             Memory memory = new Memory();
@@ -144,32 +137,70 @@ namespace NetHook.Core
             p.MethodF(3);
             p2.MethodF(3);
         }
+        static private void Server()
+        {
+            Thread thread = new Thread(() =>
+            {
+                var pipeServer = new NamedPipeServerStream("testpipe", PipeDirection.InOut, 4);
 
-        public static IpcServerChannel _ipcLogChannel;
+                StreamReader sr = new StreamReader(pipeServer);
+                StreamWriter sw = new StreamWriter(pipeServer);
+
+                try
+                {
+                    pipeServer.WaitForConnection();
+                    do
+                    {
+                        try
+                        {
+                            string test;
+                            //pipeServer.WaitForPipeDrain();
+                            test = sr.ReadLine();
+                            Console.WriteLine(test);
+                        }
+                        catch (Exception ex)
+                        {
+                            throw ex;
+                        }
+                    } while (true);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                }
+
+            });
+
+            thread.IsBackground = true;
+            thread.Start();
+        }
+
+        private static IpcServerChannel _ipcLogChannel;
+
         private static void Test3()
         {
-            string path = @"C:\Users\GTR\source\repos\NetHook\NetHook\NetHook.TestInject\bin\Debug\NetHook.TestInject.exe";
+            string path = @"..\..\NetHook.TestInject\bin\Debug\NetHook.TestInject.exe";
 
             Process process = Process.Start(path);
 
             try
             {
-
-                string outChannelName = Guid.NewGuid().ToString();
                 string dllPath = typeof(RemoteInjector).Assembly.Location;
 
-                //Config.Register("Server trace logger.", "NetHook.Core.exe", "NetHook.Core.dll");
+                //Server();
 
-                IpcServerChannel ipcLogChannel = RemoteHooking.IpcCreateServer<LoggerInterface>(ref outChannelName, WellKnownObjectMode.Singleton, WellKnownSidType.WorldSid);
-                //IpcServerChannel ipcLogChannel = IpcCreateServer<LoggerInterface>(ref outChannelName, WellKnownObjectMode.Singleton, WellKnownSidType.WorldSid);
+                string outChannelName = $"ipc://ServerChannel_{Process.GetCurrentProcess().Id}/ServerMethods";
+                _ipcLogChannel = new IpcServerChannel($"ServerChannel_{Process.GetCurrentProcess().Id}");
+                ChannelServices.RegisterChannel(_ipcLogChannel, true);
+                RemotingConfiguration.RegisterWellKnownServiceType(typeof(LoggerInterface), "ServerMethods", WellKnownObjectMode.Singleton);
 
-                _ipcLogChannel = ipcLogChannel;
+                //IpcServerChannel ipcLogChannel = RemoteHooking.IpcCreateServer<LoggerInterface>(ref outChannelName, WellKnownObjectMode.Singleton, WellKnownSidType.WorldSid);
 
+                //_ipcLogChannel = ipcLogChannel;
 
-                //ipcServer = RemoteHooking.IpcCreateServer<LoggerInterface>(ref outChannelName, WellKnownObjectMode.Singleton, ipcLogChannel, IpcChannelName, true, WellKnownSidType.WorldSid);
                 Thread.Sleep(1000);
 
-                EasyHook.RemoteHooking.Inject(process.Id, InjectionOptions.DoNotRequireStrongName, dllPath, dllPath, outChannelName);
+                EasyHook.RemoteHooking.Inject(process.Id, InjectionOptions.NoService | InjectionOptions.DoNotRequireStrongName, dllPath, dllPath, outChannelName);
 
                 Thread.Sleep(1000);
 
@@ -186,7 +217,6 @@ namespace NetHook.Core
             }
             finally
             {
-                _ipcLogChannel.StopListening(null);
                 //process.Kill();
             }
         }

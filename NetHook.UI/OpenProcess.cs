@@ -111,7 +111,7 @@ namespace NetHook.UI
             }
         }
 
-        private void toolStripButton1_Click(object sender, EventArgs e) =>
+        private void toolStripOnSearch_Click(object sender, EventArgs e) =>
             toolStripTextBox_searchValue_Click(sender, e);
 
         private void toolStripTextBox_searchValue_TextChanged(object sender, EventArgs e) =>

@@ -199,8 +199,7 @@ namespace NetHook.Core
 
         public void Dispose()
         {
-            UnInstall();
-            _memory.Dealloc(Address);
+            UnInstall(); 
         }
     }
 }

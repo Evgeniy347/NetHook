@@ -201,6 +201,7 @@ namespace NetHook.Core
             try
             {
                 UnInstall();
+                Memory.CloseHandle();
             }
             finally
             {

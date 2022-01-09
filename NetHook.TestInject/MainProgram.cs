@@ -11,15 +11,14 @@ namespace NetHook.TestInject
     {
         public static void Main(string[] args)
         {
-            Console.WriteLine("AppDomain " + AppDomain.CurrentDomain.Id);
-
             int i = 0;
             while (true)
             {
                 i++;
-                var value = TestMethod(i.ToString());
+                string value = TestMethod(i.ToString());
 
                 Console.WriteLine(value);
+
                 Thread.Sleep(1000);
             }
         }

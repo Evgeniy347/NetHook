@@ -15,18 +15,27 @@ namespace NetHook.Cores.Handlers.Trace
         {
             Method = method;
             _stopwatch = new Stopwatch();
+
             Parent = parent;
+            DateCreate = DateTime.Now;
         }
 
+        public DateTime DateCreate { get; }
         public MethodInfo Method { get; }
 
         public TimeSpan Elapsed => _stopwatch.Elapsed;
 
+        public bool IsRunning => _stopwatch.IsRunning;
+
         public TraceFrame Parent { get; }
+
+        public List<TraceFrame> ChildFrames { get; } = new List<TraceFrame>(10);
 
         internal TraceFrame CreateChild(MethodInfo method)
         {
-            return new TraceFrame(method, this);
+            TraceFrame traceFrame = new TraceFrame(method, this);
+            ChildFrames.Add(traceFrame);
+            return traceFrame;
         }
 
         internal void Start()

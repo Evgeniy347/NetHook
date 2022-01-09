@@ -43,5 +43,6 @@ namespace NetHook.Cores.Handlers.Trace
         {
             return _threadframes.ToDictionary(x => x.Key, x => x.Value);
         }
+
     }
 }
