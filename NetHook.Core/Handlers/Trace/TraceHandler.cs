@@ -12,10 +12,19 @@ namespace NetHook.Cores.Handlers.Trace
 {
     public class TraceHandler : IHandlerHook
     {
-        [ThreadStatic]
-        private TraceFrame _currentFrames;
+        private class ThreadComparer : IEqualityComparer<Thread>
+        {
 
-        private readonly ConcurrentDictionary<Thread, TraceFrame> _threadframes = new ConcurrentDictionary<Thread, TraceFrame>();
+            public bool Equals(Thread x, Thread y)
+            {
+                return x.ManagedThreadId == y.ManagedThreadId;
+            }
+
+            public int GetHashCode(Thread obj) => obj.ManagedThreadId.GetHashCode();
+        }
+
+        private readonly ConcurrentDictionary<Thread, TraceRoot> _threadframes = new ConcurrentDictionary<Thread, TraceRoot>(new ThreadComparer());
+
 
         private readonly TraceHandlerSetting _setting;
         public TraceHandler(TraceHandlerSetting setting)
@@ -26,23 +35,83 @@ namespace NetHook.Cores.Handlers.Trace
 
         public void BeforeInvoke(MethodInfo method, object instance, object[] arguments)
         {
-            if (_currentFrames == null)
-                _threadframes[Thread.CurrentThread] = _currentFrames = new TraceFrame(method);
+            if (!_threadframes.TryGetValue(Thread.CurrentThread, out TraceRoot traceRoot))
+                _threadframes[Thread.CurrentThread] = traceRoot = new TraceRoot();
 
-            _currentFrames = _currentFrames.CreateChild(method);
-            _currentFrames.Start();
+            TraceFrame traceFrame = traceRoot.Current;
+
+            if (traceFrame == null)
+            {
+                traceFrame = new TraceFrame(method);
+                traceRoot.Frames.Add(traceFrame);
+            }
+            else
+                traceFrame = traceFrame.CreateChild(method);
+
+            traceFrame.Start();
+            traceFrame.ThreadID = Thread.CurrentThread.ManagedThreadId;
+
+            traceRoot.Current = traceFrame;
         }
 
         public void AfterInvoke(MethodInfo method, object instance, object @return, Exception ex)
         {
-            _currentFrames.Stop();
-            _currentFrames = _currentFrames.Parent;
+            if (!_threadframes.TryGetValue(Thread.CurrentThread, out TraceRoot traceRoot))
+                throw new Exception();
+
+            TraceFrame traceFrame = traceRoot.Current ??
+                throw new NullReferenceException("Current Is Null");
+
+            if (traceFrame.ThreadID != Thread.CurrentThread.ManagedThreadId)
+                throw new Exception($"{traceFrame.ThreadID} {Thread.CurrentThread.ManagedThreadId}");
+
+            traceFrame.Stop();
+            traceRoot.Current = traceFrame.Parent;
+
         }
 
-        public Dictionary<Thread, TraceFrame> GetStackTrace()
+        private class TraceRoot
         {
-            return _threadframes.ToDictionary(x => x.Key, x => x.Value);
+            public List<TraceFrame> Frames { get; } = new List<TraceFrame>();
+            public TraceFrame Current { get; internal set; }
         }
+
+        public Dictionary<Thread, List<TraceFrame>> GetStackTrace()
+        {
+            return _threadframes.ToDictionary(x => x.Key, x => x.Value.Frames);
+        }
+
+        //private readonly TraceHandlerSetting _setting;
+        //public TraceHandler(TraceHandlerSetting setting)
+        //{
+        //    _setting = setting ??
+        //        throw new ArgumentNullException(nameof(setting));
+        //}
+
+        //public void BeforeInvoke(MethodInfo method, object instance, object[] arguments)
+        //{
+        //    if (!_threadframes.TryGetValue(Thread.CurrentThread, out TraceFrame value))
+        //    {
+        //        _threadframes[Thread.CurrentThread] = value = new TraceFrame(method);
+        //        value.Start();
+        //    }
+        //    else
+        //        value.CreateChild(method).Start();
+
+        //}
+
+        //public void AfterInvoke(MethodInfo method, object instance, object @return, Exception ex)
+        //{
+        //    TraceFrame value = _threadframes[Thread.CurrentThread];
+
+        //    value.Stop();
+        //    _threadframes[Thread.CurrentThread] = value.Parent;
+        //}
+
+        //public Dictionary<Thread, TraceFrame> GetStackTrace()
+        //{
+        //    return _threadframes.Where(x => x.Key != null && x.Value != null).ToDictionary(x => x.Key, x => x.Value);
+        //}
 
     }
 }

@@ -109,6 +109,7 @@ namespace NetHook.UI
             this.Controls.Add(this.button_cancell);
             this.Name = "OpenProcess";
             this.Text = "OpenProcess";
+            this.SizeChanged += new System.EventHandler(this.OpenProcess_SizeChanged);
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView_ProcessList)).EndInit();
             this.toolStrip1.ResumeLayout(false);
             this.toolStrip1.PerformLayout();

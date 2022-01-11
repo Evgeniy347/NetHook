@@ -41,6 +41,11 @@ namespace NetHook.Core
             _targetNameSpace.Types.Add(targetClass);
         }
 
+        public void Clear()
+        {
+            _targetNameSpace.Types.Clear();
+        }
+
         private void CreateMethodHook(CodeTypeDeclaration targetClass, MethodInfo methodInfo)
         {
             CodeMemberMethod method = new CodeMemberMethod();

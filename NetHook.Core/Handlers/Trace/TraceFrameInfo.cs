@@ -12,6 +12,8 @@ namespace NetHook.Cores.Handlers.Trace
 
         public string MethodName { get; set; }
 
+        public string Signature { get; set; }
+
         public string TypeName { get; set; }
 
         public string Assembler { get; set; }

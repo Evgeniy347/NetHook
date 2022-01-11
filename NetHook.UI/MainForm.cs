@@ -1,4 +1,5 @@
-﻿using NetHook.Cores.Inject;
+﻿using NetHook.Core;
+using NetHook.Cores.Inject;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -16,13 +17,12 @@ namespace NetHook.UI
     {
         private RemoteInjector _remoteInjector;
         public Process CurrentProcess { get; private set; }
-        int offsetGrideWidth = 0;
-        int offsetGrideHeight = 0;
+
         public MainForm()
         {
             InitializeComponent();
-            offsetGrideWidth = this.Width - this.dataGridView_Threads.Width;
-            offsetGrideHeight = this.Height - this.dataGridView_Threads.Height;
+
+            ResizeFormHelper.Instance.AddResizeControl(dataGridView_Threads);
         }
 
         private void toolStrip1_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
@@ -68,8 +68,7 @@ namespace NetHook.UI
 
         private void MainForm_SizeChanged(object sender, EventArgs e)
         {
-            this.dataGridView_Threads.Width = this.Width - offsetGrideWidth;
-            this.dataGridView_Threads.Height = this.Height - offsetGrideHeight;
+            ResizeFormHelper.Instance.ResizeСhangesForm(this);
         }
 
         private void toolStripButton_Play_Click(object sender, EventArgs e)
@@ -77,22 +76,77 @@ namespace NetHook.UI
 
         }
 
+        private void dataGridView_Threads_DoubleClick(object sender, EventArgs e)
+        {
+            var row = dataGridView_Threads.SelectedRows.Cast<DataGridViewRow>().FirstOrDefault();
+
+            if (row == null || !_rowsThread.TryGetValue(row, out ThreadInfo threadInfo))
+                return;
+
+            //ThreadInfo threadInfo = null;
+            Thread thread = new Thread(() =>
+            {
+                using (TraceLogForm form = new TraceLogForm(threadInfo))
+                {
+                    form.ShowDialog();
+                }
+            });
+
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+        }
+
         private void toolStripButton_Filter_Click(object sender, EventArgs e)
         {
             if (CurrentProcess == null || _remoteInjector == null)
                 return;
 
-            _remoteInjector.LoggerServer.WaitOnline();
+            LoggerInterface.WaitOnline();
 
             using (FilterForm form = new FilterForm(_remoteInjector))
             {
                 form.FormClosed += (o, ev) =>
                 {
+                    if (form.ResultValue == null)
+                        return;
 
+                    _remoteInjector.LoggerServer.SetHook(form.ResultValue.ToArray());
+
+                    _remoteInjector.LoggerServer.OnTraceLoad += UpdateThreads;
                 };
 
                 form.ShowDialog();
             }
+        }
+
+        private readonly Dictionary<DataGridViewRow, ThreadInfo> _rowsThread = new Dictionary<DataGridViewRow, ThreadInfo>();
+
+        private void UpdateThreads(ThreadInfo[] threads)
+        {
+            this.Invoke((Action)(() =>
+            {
+                this.dataGridView_Threads.Rows.Clear();
+                _rowsThread.Clear();
+
+                foreach (var thread in threads)
+                {
+                    if (thread.Frames.Length > 0)
+                    {
+                        TimeSpan timeSpan = thread.Frames.Select(x => x.Elapsed).Aggregate((x, y) => x.Add(y));
+
+                        DataGridViewRow row = new DataGridViewRow();
+                        row.Cells.Add(new DataGridViewTextBoxCell() { Value = thread.ThreadID });
+                        row.Cells.Add(new DataGridViewTextBoxCell() { Value = thread.ThreadState });
+                        row.Cells.Add(new DataGridViewTextBoxCell() { Value = thread.Frames.SelectRecursive(x => x.ChildFrames).Count() });
+                        row.Cells.Add(new DataGridViewTextBoxCell() { Value = thread.Frames.FirstOrDefault().DateCreate });
+                        row.Cells.Add(new DataGridViewTextBoxCell() { Value = thread.Frames.FirstOrDefault().DateCreate.Add(timeSpan) });
+                        row.Cells.Add(new DataGridViewTextBoxCell() { Value = timeSpan });
+
+                        this.dataGridView_Threads.Rows.Add(row);
+                        _rowsThread[row] = thread;
+                    }
+                }
+            }));
         }
 
         private void toolStripButton1_Click(object sender, EventArgs e)
@@ -106,5 +160,6 @@ namespace NetHook.UI
 
             OpenProcess(process);
         }
+
     }
 }

@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 
 namespace NetHook.Cores.Handlers.Trace
 {
@@ -21,15 +23,17 @@ namespace NetHook.Cores.Handlers.Trace
         }
 
         public DateTime DateCreate { get; }
+
         public MethodInfo Method { get; }
 
         public TimeSpan Elapsed => _stopwatch.Elapsed;
 
         public bool IsRunning => _stopwatch.IsRunning;
+        public int ThreadID { get; set; }
 
         public TraceFrame Parent { get; }
 
-        public List<TraceFrame> ChildFrames { get; } = new List<TraceFrame>(10);
+        public ConcurrentBag<TraceFrame> ChildFrames { get; } = new ConcurrentBag<TraceFrame>();
 
         internal TraceFrame CreateChild(MethodInfo method)
         {

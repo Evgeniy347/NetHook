@@ -11,21 +11,49 @@ namespace NetHook.TestInject
     {
         public static void Main(string[] args)
         {
-            int i = 0;
-            while (true)
+            for (int i = 0; i < 4; i++)
             {
-                i++;
-                string value = TestMethod(i.ToString());
+                Thread thread = new Thread((o) =>
+                {
+                    int j = 0;
+                    while (true)
+                    {
+                        j++;
+                        string value = o?.ToString() == "0" ? TestMethodReqursive(j.ToString()) : TestMethod(j.ToString());
 
-                Console.WriteLine(value);
+                        Console.WriteLine(value);
 
-                Thread.Sleep(1000);
+                        Thread.Sleep(i * 100 + 1000);
+                    }
+                });
+
+                thread.IsBackground = true;
+                thread.SetApartmentState(ApartmentState.STA);
+                thread.Start(i);
             }
+
+            Console.ReadLine();
         }
 
         public static string TestMethod(string value)
         {
-            return value + " " + string.Join(" => ", new StackTrace().GetFrames().Select(x => x.GetMethod().Name).Reverse().ToArray());
+            return value + " " + Thread.CurrentThread.ManagedThreadId + " " + string.Join(" => ", new StackTrace().GetFrames().Select(x => x.GetMethod().Name).Reverse().ToArray());
+        }
+
+        static int index = 0;
+
+        public static string TestMethodReqursive(string value)
+        {
+
+            if (index == 0)
+                index = 5;
+            else
+            {
+                index--;
+                return TestMethodReqursive(value);
+            }
+
+            return value + " " + Thread.CurrentThread.ManagedThreadId + " " + string.Join(" => ", new StackTrace().GetFrames().Select(x => x.GetMethod().Name).Reverse().ToArray());
         }
     }
 }

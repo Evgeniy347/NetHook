@@ -9,36 +9,53 @@ namespace NetHook.Cores.Inject
 {
     public class LoggerInterface : MarshalByRefObject
     {
-
-        static public bool Online { get; private set; }
-
-        static private readonly AutoResetEvent _evt = new AutoResetEvent(false);
-
-        static public List<DomainModelInfo> DomainInfos { get; } = new List<DomainModelInfo>();
-
-        public void OnCreateFile(TraceFrameInfo[] traceFrames)
+        public LoggerInterface()
         {
-            if (traceFrames == null)
-                return;
-
-            OnCreateFileInternal(traceFrames);
+            Current = this;
         }
 
-        public void OnCreateFileInternal(TraceFrameInfo[] traceFrames)
-        {
+        public DateTime ChangeDateHook { get; set; }
 
-            for (int i = 0; i < traceFrames.Length; i++)
+        private static readonly AutoResetEvent _evt = new AutoResetEvent(false);
+
+        private MethodModelInfo[] _methods { get; set; }
+
+        public List<DomainModelInfo> DomainInfos { get; } = new List<DomainModelInfo>();
+
+        public void UploadThreadInfo(ThreadInfo[] threadInfos)
+        {
+            if (threadInfos == null)
+                return;
+
+            UploadFrameIternal(threadInfos.SelectMany(x => x.Frames).ToArray());
+            OnTraceLoad?.Invoke(threadInfos);
+
+        }
+
+        public void UploadFrameIternal(TraceFrameInfo[] frameInfos)
+        {
+            foreach (var frame in frameInfos)
             {
-                Console.WriteLine(traceFrames[i].MethodName + " " + traceFrames[i].Elapsed);
-                OnCreateFileInternal(traceFrames[i].ChildFrames);
+                Console.WriteLine(frame.MethodName + " " + frame.Elapsed);
+                UploadFrameIternal(frame.ChildFrames);
             }
         }
 
         public void SendModuleInfo(DomainModelInfo domainInfo)
         {
-            Online = true;
             DomainInfos.Add(domainInfo);
             _evt.Reset();
+        }
+
+        public void SetHook(MethodModelInfo[] methods)
+        {
+            ChangeDateHook = DateTime.Now;
+            _methods = methods;
+        }
+
+        public MethodModelInfo[] GetHook()
+        {
+            return _methods;
         }
 
         public AssembleModelInfo[] GetAssembles()
@@ -51,14 +68,27 @@ namespace NetHook.Cores.Inject
 
         internal void Reset()
         {
-            Online = false;
             DomainInfos.Clear();
         }
 
-        public void WaitOnline()
+        public static void WaitOnline()
         {
-            while (!Online)
+            while (Current == null)
                 _evt.WaitOne(1000);
         }
+
+        public Action<ThreadInfo[]> OnTraceLoad;
+
+        public static LoggerInterface Current;
+    }
+
+    [Serializable]
+    public class ThreadInfo
+    {
+        public TraceFrameInfo[] Frames { get; set; }
+
+        public int ThreadID { get; set; }
+
+        public ThreadState ThreadState { get; set; }
     }
 }

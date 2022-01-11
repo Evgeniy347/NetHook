@@ -45,15 +45,16 @@ namespace NetHook.UI
             this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
             this.toolStripLabel_OpenProcess = new System.Windows.Forms.ToolStripLabel();
             this.toolStripProgressBar1 = new System.Windows.Forms.ToolStripProgressBar();
+            this.toolStripButton1 = new System.Windows.Forms.ToolStripButton();
             this.dataGridView_Threads = new System.Windows.Forms.DataGridView();
             this.ThreadID = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Status = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.Frames = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.StartTime = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.EndTime = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Elapsed = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.HttpUserLogin = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.URL = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.toolStripButton1 = new System.Windows.Forms.ToolStripButton();
             this.toolStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView_Threads)).BeginInit();
             this.SuspendLayout();
@@ -194,6 +195,16 @@ namespace NetHook.UI
             this.toolStripProgressBar1.Name = "toolStripProgressBar1";
             this.toolStripProgressBar1.Size = new System.Drawing.Size(100, 22);
             // 
+            // toolStripButton1
+            // 
+            this.toolStripButton1.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.toolStripButton1.Image = ((System.Drawing.Image)(resources.GetObject("toolStripButton1.Image")));
+            this.toolStripButton1.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.toolStripButton1.Name = "toolStripButton1";
+            this.toolStripButton1.Size = new System.Drawing.Size(23, 22);
+            this.toolStripButton1.Text = "toolStripButton1";
+            this.toolStripButton1.Click += new System.EventHandler(this.toolStripButton1_Click);
+            // 
             // dataGridView_Threads
             // 
             this.dataGridView_Threads.AllowUserToAddRows = false;
@@ -202,6 +213,7 @@ namespace NetHook.UI
             this.dataGridView_Threads.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
             this.ThreadID,
             this.Status,
+            this.Frames,
             this.StartTime,
             this.EndTime,
             this.Elapsed,
@@ -213,6 +225,7 @@ namespace NetHook.UI
             this.dataGridView_Threads.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
             this.dataGridView_Threads.Size = new System.Drawing.Size(776, 403);
             this.dataGridView_Threads.TabIndex = 4;
+            this.dataGridView_Threads.DoubleClick += new System.EventHandler(this.dataGridView_Threads_DoubleClick);
             // 
             // ThreadID
             // 
@@ -225,6 +238,12 @@ namespace NetHook.UI
             this.Status.HeaderText = "Status";
             this.Status.Name = "Status";
             this.Status.ReadOnly = true;
+            // 
+            // Frames
+            // 
+            this.Frames.HeaderText = "Frames";
+            this.Frames.Name = "Frames";
+            this.Frames.ReadOnly = true;
             // 
             // StartTime
             // 
@@ -256,16 +275,6 @@ namespace NetHook.UI
             this.URL.HeaderText = "URL";
             this.URL.Name = "URL";
             this.URL.ReadOnly = true;
-            // 
-            // toolStripButton1
-            // 
-            this.toolStripButton1.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.toolStripButton1.Image = ((System.Drawing.Image)(resources.GetObject("toolStripButton1.Image")));
-            this.toolStripButton1.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.toolStripButton1.Name = "toolStripButton1";
-            this.toolStripButton1.Size = new System.Drawing.Size(23, 22);
-            this.toolStripButton1.Text = "toolStripButton1";
-            this.toolStripButton1.Click += new System.EventHandler(this.toolStripButton1_Click);
             // 
             // MainForm
             // 
@@ -302,14 +311,15 @@ namespace NetHook.UI
         private System.Windows.Forms.ToolStripLabel toolStripLabel_OpenProcess;
         private System.Windows.Forms.ToolStripButton toolStripButton_Filter;
         private System.Windows.Forms.DataGridView dataGridView_Threads;
+        private System.Windows.Forms.ToolStripButton toolStripButton1;
         private System.Windows.Forms.DataGridViewTextBoxColumn ThreadID;
         private System.Windows.Forms.DataGridViewTextBoxColumn Status;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Frames;
         private System.Windows.Forms.DataGridViewTextBoxColumn StartTime;
         private System.Windows.Forms.DataGridViewTextBoxColumn EndTime;
         private System.Windows.Forms.DataGridViewTextBoxColumn Elapsed;
         private System.Windows.Forms.DataGridViewTextBoxColumn HttpUserLogin;
         private System.Windows.Forms.DataGridViewTextBoxColumn URL;
-        private System.Windows.Forms.ToolStripButton toolStripButton1;
     }
 }
 

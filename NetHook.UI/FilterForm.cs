@@ -1,5 +1,6 @@
 ﻿using NetHook.Cores.Extensions;
 using NetHook.Cores.Inject;
+using NetHook.UI.Extensions;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -15,68 +16,22 @@ namespace NetHook.UI
     public partial class FilterForm : Form
     {
         public RemoteInjector RemoteInjector { get; }
-        private Dictionary<TreeNodeHelper, object> _nodes = new Dictionary<TreeNodeHelper, object>();
-        private List<TreeNodeHelper> _rootNodes = new List<TreeNodeHelper>();
+        private readonly Dictionary<TreeNodeHelper, object> _nodes = new Dictionary<TreeNodeHelper, object>();
+
+        public List<MethodModelInfo> ResultValue { get; private set; }
+
+        public readonly TreeViewSearchHelper _treeViewSearchHelper;
 
         public FilterForm(RemoteInjector remoteInjector)
         {
             InitializeComponent();
             RemoteInjector = remoteInjector;
+            _treeViewSearchHelper = new TreeViewSearchHelper(treeView_assemblies);
 
             InitTreeView();
-        }
-
-        public class TreeNodeHelper : TreeNode
-        {
-            public TreeNodeHelper(List<TreeNodeHelper> hidesParent, TreeNodeCollection parentNodes, string text)
-                : base(text)
-            {
-                _HideParentNodes = hidesParent;
-                _ParentNodes = parentNodes;
-            }
-
-            public TreeNodeHelper(string text)
-                : base(text)
-            { }
-
-            public List<TreeNodeHelper> HideNodes { get; } = new List<TreeNodeHelper>();
-
-            public List<TreeNodeHelper> AllNodes => HideNodes.Union(this.Nodes.Cast<TreeNodeHelper>()).ToList();
-
-            private List<TreeNodeHelper> _HideParentNodes;
-            public List<TreeNodeHelper> HideParentNodes => _HideParentNodes ?? (_HideParentNodes = ((TreeNodeHelper)this.Parent).HideNodes);
-
-            private TreeNodeCollection _ParentNodes;
-            public TreeNodeCollection ParentNodes => _ParentNodes ?? (_ParentNodes = this.Parent.Nodes);
-
-            private bool _Visible = true;
-            public bool Visible
-            {
-                get => _Visible; set
-                {
-                    if (_Visible == value)
-                        return;
-
-                    if (value)
-                        Show();
-                    else
-                        Hide();
-
-                    _Visible = value;
-                }
-            }
-
-            public void Hide()
-            {
-                HideParentNodes.Add(this);
-                ParentNodes.Remove(this);
-            }
-
-            public void Show()
-            {
-                HideParentNodes.Remove(this);
-                ParentNodes.Add(this);
-            }
+            ResizeFormHelper.Instance.AddResizeControl(treeView_assemblies);
+            ResizeFormHelper.Instance.AddFixControl(button_Ok);
+            ResizeFormHelper.Instance.AddFixControl(button_Cancel);
         }
 
         private void InitTreeView()
@@ -85,19 +40,18 @@ namespace NetHook.UI
 
             treeView_assemblies.BeginUpdate();
 
-            treeView_assemblies.Nodes.AddRange(assemblers.Select(GetNode).ToArray());
+            using (treeView_assemblies.CreateUpdateContext())
+                treeView_assemblies.Nodes.AddRange(assemblers.Select(GetNode).ToArray());
 
             treeView_assemblies.EndUpdate();
         }
 
         private TreeNodeHelper GetNode(AssembleModelInfo assembleModel)
         {
-            TreeNodeHelper node = new TreeNodeHelper(_rootNodes, treeView_assemblies.Nodes, assembleModel.Name);
+            TreeNodeHelper node = new TreeNodeHelper(_treeViewSearchHelper.HideRootNodes, treeView_assemblies.Nodes, assembleModel.Name);
             _nodes[node] = assembleModel;
 
-
-
-            node.Nodes.AddRange(assembleModel.Types.GroupBy(x => x.Namespace)
+            node.AddRange(assembleModel.Types.GroupBy(x => x.Namespace)
                 .Select(x => GetNode(x.Key, x.ToArray()))
                 .ToArray());
 
@@ -109,7 +63,7 @@ namespace NetHook.UI
             TreeNodeHelper node = new TreeNodeHelper(nameSpace);
             _nodes[node] = nameSpace;
 
-            node.Nodes.AddRange(types.Select(x => GetNode(x)).ToArray());
+            node.AddRange(types.Select(x => GetNode(x)).ToArray());
 
             return node;
         }
@@ -119,12 +73,12 @@ namespace NetHook.UI
             TreeNodeHelper node = new TreeNodeHelper(typeModel.Name);
             _nodes[node] = typeModel;
 
-            node.Nodes.AddRange(typeModel.Methods.Select(x => GetNode(x)).ToArray());
+            node.AddRange(typeModel.Methods.Select(x => GetNode(x)).ToArray());
 
             return node;
         }
 
-        private TreeNodeHelper GetNode(TypeMethodlInfo methodlInfo)
+        private TreeNodeHelper GetNode(MethodModelInfo methodlInfo)
         {
             TreeNodeHelper node = new TreeNodeHelper(methodlInfo.Signature);
             _nodes[node] = methodlInfo;
@@ -132,28 +86,9 @@ namespace NetHook.UI
             return node;
         }
 
-        private void checkedListBox1_SelectedIndexChanged(object sender, EventArgs e)
-        {
-
-        }
-
-        private void checkedListBox_process_SelectedIndexChanged(object sender, EventArgs e)
-        {
-
-        }
-
-        private void FilterForm_Load(object sender, EventArgs e)
-        {
-
-        }
-
-        private void treeView_assemblies_AfterSelect(object sender, TreeViewEventArgs e)
-        {
-
-        }
-
         private void button_Cancel_Click(object sender, EventArgs e)
         {
+            ResultValue = null;
             this.Close();
         }
 
@@ -161,32 +96,7 @@ namespace NetHook.UI
         private void toolStripTextBox_searchValue_Click(object sender, EventArgs e)
         {
             var value = toolStripTextBox_searchValue.Text;
-
-            treeView_assemblies.BeginUpdate();
-            treeView_assemblies.SelectedNode = null;
-
-            treeView_assemblies.Visible = false;
-            CheckVisibleNodes(treeView_assemblies.Nodes.Cast<TreeNodeHelper>().Union(_rootNodes).ToList(), value);
-
-            treeView_assemblies.Visible = true;
-
-            treeView_assemblies.EndUpdate();
-        }
-
-        private bool CheckVisibleNodes(List<TreeNodeHelper> nodes, string value)
-        {
-            bool any = false;
-
-            foreach (TreeNodeHelper node in nodes)
-            {
-
-                node.Visible = CheckVisibleNodes(node.AllNodes, value) || node.Text.ContainsSearch(value);
-
-                if (node.Visible)
-                    any = true;
-            }
-
-            return any;
+            _treeViewSearchHelper.Search(value);
         }
 
         private void toolStripOnSearch_Click(object sender, EventArgs e) =>
@@ -195,5 +105,27 @@ namespace NetHook.UI
         private void toolStripTextBox_searchValue_TextChanged(object sender, EventArgs e) =>
             toolStripTextBox_searchValue_Click(sender, e);
 
+        private void button_Ok_Click(object sender, EventArgs e)
+        {
+            ResultValue = new List<MethodModelInfo>();
+
+            foreach (var keyValue in _nodes)
+            {
+                if (keyValue.Key.Checked)
+                {
+                    if (keyValue.Value is MethodModelInfo method)
+                    {
+                        ResultValue.Add(method);
+                    }
+                }
+            }
+
+            this.Close();
+        }
+
+        private void FilterForm_SizeChanged(object sender, EventArgs e)
+        {
+            ResizeFormHelper.Instance.ResizeСhangesForm(this);
+        }
     }
 }

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NetHook.Cores.Inject;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -31,8 +32,9 @@ namespace NetHook.Core
         public void Install()
         {
             Assembly assembly = CodeDoomProvider.Compiller();
-
+            CodeDoomProvider.Clear();
             UnInstall();
+
 
             foreach (Type type in assembly.GetTypes().Where(x => typeof(LocalHookRuntimeInstance).IsAssignableFrom(x)))
             {
@@ -47,6 +49,9 @@ namespace NetHook.Core
 
         internal void UnInstall()
         {
+            if (_memories.Count == 0)
+                return;
+
             try
             {
                 foreach (var keyValue in _memories)
@@ -109,6 +114,9 @@ namespace NetHook.Core
         {
             try
             {
+                if (method.IsConstructor)
+                    throw new NotImplementedException($"Запрещено использовать конструкторы");
+
                 if (!method.ReturnType.IsClass)
                     throw new NotImplementedException($"Запрещено использовать структуры в качестве возвращаемого значения. ReturnType '{method.ReturnType.FullName}'");
 
@@ -180,6 +188,16 @@ namespace NetHook.Core
             string key = method.DeclaringType.AssemblyQualifiedName + ";" + method.Name;
             _methods[key] = method;
             return key;
+        }
+
+        internal static MethodInfo[] GetMethods(Type type)
+        {
+            var result = type.GetMethods(BindingFlags.Instance | BindingFlags.Static |
+                    BindingFlags.Public | BindingFlags.NonPublic)
+                   .Where(x => x.DeclaringType == type && !x.IsConstructor)
+                   .ToArray();
+
+            return result;
         }
 
         public MethodInfo Get(string key)

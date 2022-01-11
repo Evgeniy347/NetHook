@@ -42,18 +42,25 @@ namespace NetHook.UI
             dataGridView_ProcessList.Columns[0].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
             dataGridView_ProcessList.Columns[1].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
             this.ActiveControl = toolStripTextBox_searchValue.TextBox;
+
+            ResizeFormHelper.Instance.AddResizeControl(dataGridView_ProcessList);
+            ResizeFormHelper.Instance.AddFixControl(button_OK);
+            ResizeFormHelper.Instance.AddFixControl(button_cancell);
         }
+
+        private Process _selectedProcess;
 
         public Process SelectedProcess { get; private set; }
 
         private void button_OK_Click(object sender, EventArgs e)
         {
+            SelectedProcess = _selectedProcess;
             this.Close();
         }
 
         private void button_cancell_Click(object sender, EventArgs e)
         {
-            SelectedProcess = null;
+            _selectedProcess = null;
             this.Close();
         }
 
@@ -88,14 +95,14 @@ namespace NetHook.UI
         private void dataGridView_ProcessList_SelectionChanged(object sender, EventArgs e)
         {
 
-            SelectedProcess = (dataGridView_ProcessList.SelectedRows.Cast<ProcessListViweInfo>().FirstOrDefault())?.Process;
-            button_OK.Enabled = SelectedProcess != null;
+            _selectedProcess = (dataGridView_ProcessList.SelectedRows.Cast<ProcessListViweInfo>().FirstOrDefault())?.Process;
+            button_OK.Enabled = _selectedProcess != null;
         }
 
         private void dataGridView_ProcessList_DoubleClick(object sender, EventArgs e)
         {
-            SelectedProcess = (dataGridView_ProcessList.SelectedRows.Cast<ProcessListViweInfo>().FirstOrDefault())?.Process;
-            if (SelectedProcess != null)
+            _selectedProcess = (dataGridView_ProcessList.SelectedRows.Cast<ProcessListViweInfo>().FirstOrDefault())?.Process;
+            if (_selectedProcess != null)
                 this.Close();
         }
 
@@ -117,5 +124,9 @@ namespace NetHook.UI
         private void toolStripTextBox_searchValue_TextChanged(object sender, EventArgs e) =>
             toolStripTextBox_searchValue_Click(sender, e);
 
+        private void OpenProcess_SizeChanged(object sender, EventArgs e)
+        {
+            ResizeFormHelper.Instance.ResizeСhangesForm(this);
+        }
     }
 }

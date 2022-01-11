@@ -14,28 +14,42 @@ namespace NetHook.Cores.Inject
 {
     public class RemoteInjector : IDisposable
     {
-        public IpcServerChannel ServerChannel { get; private set; }
+        private IpcServerChannel ServerChannel { get; set; }
 
-        public LoggerInterface LoggerServer { get; private set; } = new LoggerInterface();
+        public LoggerInterface LoggerServer => LoggerInterface.Current;
 
         public void Inject(Process process)
         {
-            string outChannelName = $"ipc://ServerChannel_{Process.GetCurrentProcess().Id}/ServerMethods";
-            ServerChannel = new IpcServerChannel($"ServerChannel_{Process.GetCurrentProcess().Id}");
-            ChannelServices.RegisterChannel(ServerChannel, true);
-            RemotingConfiguration.RegisterWellKnownServiceType(typeof(LoggerInterface), "ServerMethods", WellKnownObjectMode.Singleton);
+            Close();
 
-            RemotingServices.Marshal(LoggerServer, $"ServerChannel_{Process.GetCurrentProcess().Id}");
+            string serverUrl = $"{typeof(RemoteInjector).FullName}";
+            string outChannelName = $"ipc://{serverUrl}/LoggerServer";
+            ServerChannel = new IpcServerChannel(serverUrl);
+            ChannelServices.RegisterChannel(ServerChannel, true);
+            RemotingConfiguration.RegisterWellKnownServiceType(typeof(LoggerInterface), "LoggerServer", WellKnownObjectMode.Singleton);
+
             string dllPath = typeof(RemoteInjector).Assembly.Location;
+            ServerChannel.StartListening(null);
 
             RemoteHooking.Inject(process.Id, InjectionOptions.NoService | InjectionOptions.DoNotRequireStrongName,
                 dllPath, dllPath, outChannelName);
+
+        }
+
+        private void Close()
+        {
+            if (ServerChannel != null)
+            {
+                ServerChannel.StopListening(null);
+                ChannelServices.UnregisterChannel(ServerChannel);
+            }
+
+            LoggerServer?.Reset();
         }
 
         public void Dispose()
         {
-            ChannelServices.UnregisterChannel(ServerChannel);
-            LoggerServer.Reset();
+            Close();
         }
     }
 }
