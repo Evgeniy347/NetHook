@@ -1,20 +1,33 @@
-﻿using NetHook.Cores.Handlers.Trace;
+﻿using NetHook.Cores.Extensions;
+using NetHook.Cores.Handlers.Trace;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Threading;
 
 namespace NetHook.Cores.Inject
 {
-    public class LoggerInterface : MarshalByRefObject
+    public class LoggerProxy : MarshalByRefObject, IDisposable
     {
-        public LoggerInterface()
+        public LoggerProxy()
         {
+            if (Current != null)
+                Current.Dispose();
+
             Current = this;
+            _evt.Reset();
         }
 
+        public Action<ThreadInfo[]> OnTraceLoad;
+
+        public static Action<int, string, string> OnInjectDomainError;
+        public static Action<string, string> OnInjectProcessError;
+
         public DateTime ChangeDateHook { get; set; }
+
+        public bool AllDomainInject { get; set; }
 
         private static readonly AutoResetEvent _evt = new AutoResetEvent(false);
 
@@ -41,8 +54,9 @@ namespace NetHook.Cores.Inject
             }
         }
 
-        public void SendModuleInfo(DomainModelInfo domainInfo)
+        public void SendModuleInfo(int id, DomainModelInfo domainInfo)
         {
+            AllDomainInject = true;
             DomainInfos.Add(domainInfo);
             _evt.Reset();
         }
@@ -71,24 +85,59 @@ namespace NetHook.Cores.Inject
             DomainInfos.Clear();
         }
 
+
         public static void WaitOnline()
         {
             while (Current == null)
                 _evt.WaitOne(1000);
+
+            while (!Current.AllDomainInject)
+                _evt.WaitOne(1000);
         }
 
-        public Action<ThreadInfo[]> OnTraceLoad;
 
-        public static LoggerInterface Current;
+        public static LoggerProxy Current;
+
+        public void WriteInjectError(int domainID, string message, string fullError)
+        {
+            OnInjectProcessError.Invoke(message, fullError);
+            _evt.Reset();
+        }
+
+        public void WriteDomainError(int domainID, string message, string fullError)
+        {
+            OnInjectDomainError.Invoke(domainID, message, fullError);
+        }
+
+        internal void InjectAllDomain(int[] domainIDs)
+        {
+            AllDomainInject = true;
+            _evt.Reset();
+        }
+
+        internal void AllDomain(int[] domainIDs)
+        {
+
+        }
+
+        public void Dispose()
+        {
+
+        }
     }
 
     [Serializable]
+    [DataContract]
     public class ThreadInfo
     {
+        [DataMember]
         public TraceFrameInfo[] Frames { get; set; }
 
+        [DataMember]
         public int ThreadID { get; set; }
 
+
+        [DataMember]
         public ThreadState ThreadState { get; set; }
     }
 }

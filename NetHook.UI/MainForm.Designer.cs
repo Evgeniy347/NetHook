@@ -46,6 +46,7 @@ namespace NetHook.UI
             this.toolStripLabel_OpenProcess = new System.Windows.Forms.ToolStripLabel();
             this.toolStripProgressBar1 = new System.Windows.Forms.ToolStripProgressBar();
             this.toolStripButton1 = new System.Windows.Forms.ToolStripButton();
+            this.toolStripButton_logConsole = new System.Windows.Forms.ToolStripButton();
             this.dataGridView_Threads = new System.Windows.Forms.DataGridView();
             this.ThreadID = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Status = new System.Windows.Forms.DataGridViewTextBoxColumn();
@@ -76,7 +77,8 @@ namespace NetHook.UI
             this.toolStripSeparator3,
             this.toolStripLabel_OpenProcess,
             this.toolStripProgressBar1,
-            this.toolStripButton1});
+            this.toolStripButton1,
+            this.toolStripButton_logConsole});
             this.toolStrip1.Location = new System.Drawing.Point(0, 0);
             this.toolStrip1.Name = "toolStrip1";
             this.toolStrip1.Size = new System.Drawing.Size(800, 25);
@@ -127,6 +129,7 @@ namespace NetHook.UI
             this.toolStripButton_Refresh.Size = new System.Drawing.Size(23, 22);
             this.toolStripButton_Refresh.Text = "toolStripButton_Refresh";
             this.toolStripButton_Refresh.ToolTipText = "Refresh";
+            this.toolStripButton_Refresh.Click += new System.EventHandler(this.toolStripButton_Refresh_Click);
             // 
             // toolStripButton_Play
             // 
@@ -148,6 +151,7 @@ namespace NetHook.UI
             this.toolStripButton_Pause.Size = new System.Drawing.Size(23, 22);
             this.toolStripButton_Pause.Text = "toolStripButton_Pause";
             this.toolStripButton_Pause.ToolTipText = "Pause";
+            this.toolStripButton_Pause.Click += new System.EventHandler(this.toolStripButton_Pause_Click);
             // 
             // toolStripButton_Clear
             // 
@@ -158,6 +162,7 @@ namespace NetHook.UI
             this.toolStripButton_Clear.Size = new System.Drawing.Size(23, 22);
             this.toolStripButton_Clear.Text = "toolStripButton_Clear";
             this.toolStripButton_Clear.ToolTipText = "Clear";
+            this.toolStripButton_Clear.Click += new System.EventHandler(this.toolStripButton_Clear_Click);
             // 
             // toolStripSeparator2
             // 
@@ -204,6 +209,16 @@ namespace NetHook.UI
             this.toolStripButton1.Size = new System.Drawing.Size(23, 22);
             this.toolStripButton1.Text = "toolStripButton1";
             this.toolStripButton1.Click += new System.EventHandler(this.toolStripButton1_Click);
+            // 
+            // toolStripButton_logConsole
+            // 
+            this.toolStripButton_logConsole.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.toolStripButton_logConsole.Image = ((System.Drawing.Image)(resources.GetObject("toolStripButton_logConsole.Image")));
+            this.toolStripButton_logConsole.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.toolStripButton_logConsole.Name = "toolStripButton_logConsole";
+            this.toolStripButton_logConsole.Size = new System.Drawing.Size(23, 22);
+            this.toolStripButton_logConsole.Text = "Log Console";
+            this.toolStripButton_logConsole.Click += new System.EventHandler(this.toolStripButton_logConsole_Click);
             // 
             // dataGridView_Threads
             // 
@@ -285,6 +300,7 @@ namespace NetHook.UI
             this.Controls.Add(this.toolStrip1);
             this.Name = "MainForm";
             this.Text = "MainForm";
+            this.Load += new System.EventHandler(this.MainForm_Load);
             this.SizeChanged += new System.EventHandler(this.MainForm_SizeChanged);
             this.toolStrip1.ResumeLayout(false);
             this.toolStrip1.PerformLayout();
@@ -320,6 +336,7 @@ namespace NetHook.UI
         private System.Windows.Forms.DataGridViewTextBoxColumn Elapsed;
         private System.Windows.Forms.DataGridViewTextBoxColumn HttpUserLogin;
         private System.Windows.Forms.DataGridViewTextBoxColumn URL;
+        private System.Windows.Forms.ToolStripButton toolStripButton_logConsole;
     }
 }
 

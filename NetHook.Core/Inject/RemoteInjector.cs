@@ -16,9 +16,9 @@ namespace NetHook.Cores.Inject
     {
         private IpcServerChannel ServerChannel { get; set; }
 
-        public LoggerInterface LoggerServer => LoggerInterface.Current;
+        private LoggerProxy LoggerServer => LoggerProxy.Current;
 
-        public void Inject(Process process)
+        private void InjectIpcServer(Process process)
         {
             Close();
 
@@ -26,14 +26,21 @@ namespace NetHook.Cores.Inject
             string outChannelName = $"ipc://{serverUrl}/LoggerServer";
             ServerChannel = new IpcServerChannel(serverUrl);
             ChannelServices.RegisterChannel(ServerChannel, true);
-            RemotingConfiguration.RegisterWellKnownServiceType(typeof(LoggerInterface), "LoggerServer", WellKnownObjectMode.Singleton);
+            RemotingConfiguration.RegisterWellKnownServiceType(typeof(LoggerProxy), "LoggerServer", WellKnownObjectMode.Singleton);
 
             string dllPath = typeof(RemoteInjector).Assembly.Location;
             ServerChannel.StartListening(null);
 
             RemoteHooking.Inject(process.Id, InjectionOptions.NoService | InjectionOptions.DoNotRequireStrongName,
                 dllPath, dllPath, outChannelName);
+        }
 
+        public void InjectSocketerver(Process process, int port)
+        {
+            Close();
+            string dllPath = typeof(RemoteInjector).Assembly.Location;
+            RemoteHooking.Inject(process.Id, InjectionOptions.NoService | InjectionOptions.DoNotRequireStrongName,
+                dllPath, dllPath, port.ToString());
         }
 
         private void Close()

@@ -17,7 +17,6 @@ namespace NetHook.UI
         public OpenProcess()
         {
             InitializeComponent();
-
             button_OK.Enabled = false;
             dataGridView_ProcessList.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dataGridView_ProcessList.MultiSelect = false;
@@ -29,6 +28,7 @@ namespace NetHook.UI
                 .Select(x => (DataGridViewRow)new ProcessListViweInfo(x))
                 .ToArray());
 
+            dataGridView_ProcessList.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
             dataGridView_ProcessList.AllowUserToResizeRows = false;
             dataGridView_ProcessList.AllowUserToResizeColumns = false;
             dataGridView_ProcessList.AllowUserToDeleteRows = false;
@@ -42,10 +42,12 @@ namespace NetHook.UI
             dataGridView_ProcessList.Columns[0].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
             dataGridView_ProcessList.Columns[1].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
             this.ActiveControl = toolStripTextBox_searchValue.TextBox;
+            Load += (o, e) => dataGridView_ProcessList.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
 
             ResizeFormHelper.Instance.AddResizeControl(dataGridView_ProcessList);
             ResizeFormHelper.Instance.AddFixControl(button_OK);
             ResizeFormHelper.Instance.AddFixControl(button_cancell);
+
         }
 
         private Process _selectedProcess;
@@ -54,12 +56,16 @@ namespace NetHook.UI
 
         private void button_OK_Click(object sender, EventArgs e)
         {
+            Console.WriteLine($"OK Click {_selectedProcess}");
+
             SelectedProcess = _selectedProcess;
             this.Close();
         }
 
         private void button_cancell_Click(object sender, EventArgs e)
         {
+            Console.WriteLine($"Click Click {_selectedProcess}");
+
             _selectedProcess = null;
             this.Close();
         }
@@ -103,7 +109,10 @@ namespace NetHook.UI
         {
             _selectedProcess = (dataGridView_ProcessList.SelectedRows.Cast<ProcessListViweInfo>().FirstOrDefault())?.Process;
             if (_selectedProcess != null)
+            {
+                SelectedProcess = _selectedProcess;
                 this.Close();
+            }
         }
 
         private void toolStripTextBox_searchValue_Click(object sender, EventArgs e)

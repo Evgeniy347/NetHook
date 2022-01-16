@@ -21,12 +21,14 @@ namespace NetHook.UI
         public List<TreeNodeHelper> HideNodes { get; } = new List<TreeNodeHelper>();
 
         private List<TreeNodeHelper> _HideParentNodes;
-        public List<TreeNodeHelper> HideParentNodes => _HideParentNodes ?? (_HideParentNodes = ((TreeNodeHelper)this.Parent).HideNodes);
+        public List<TreeNodeHelper> HideParentNodes => _HideParentNodes ?? (_HideParentNodes = (this.Parent).HideNodes);
 
         private TreeNodeCollection _ParentNodes;
         public TreeNodeCollection ParentNodes => _ParentNodes ?? (_ParentNodes = this.Parent.Nodes);
 
         public TreeNodeHelper[] AllNodes => HideNodes.Union(this.Nodes.Cast<TreeNodeHelper>()).ToArray();
+
+        public TreeNodeHelper Parent => (TreeNodeHelper)base.Parent;
 
         private bool _Visible = true;
         public bool Visible

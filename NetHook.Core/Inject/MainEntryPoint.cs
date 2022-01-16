@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipes;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -10,7 +11,7 @@ namespace NetHook.Cores.Inject
 {
     public class MainEntryPoint : IEntryPoint
     {
-        public MainEntryPoint(RemoteHooking.IContext InContext, String InChannelName)
+        public MainEntryPoint(RemoteHooking.IContext InContext, string inChannelName)
         { }
 
         private static ICorRuntimeHost GetCorRuntimeHost()
@@ -50,19 +51,46 @@ namespace NetHook.Cores.Inject
             }
         }
 
-        public void Run(RemoteHooking.IContext InContext, String InChannelName)
+        public void Run(RemoteHooking.IContext context, string inChannelName)
         {
             try
             {
-                foreach (var domain in EnumAppDomains())
+                using (DomainEntryPoint.SetContextClient(inChannelName))
                 {
-                    if (domain.Id == AppDomain.CurrentDomain.Id)
-                        continue;
+                    //LoggerServer client = new LoggerServer(); 
+                    try
+                    {
+                        AppDomain[] domains = EnumAppDomains().ToArray();
 
-                    var obj = domain.CreateInstanceFromAndUnwrap(typeof(DomainEntryPoint).Assembly.Location, typeof(DomainEntryPoint).FullName);
-                    var foo = (IDomainEntryPoint)obj;
+                        //client.AllDomain(domains.Select(x => x.Id).ToArray());
 
-                    foo.InjectDomain(InChannelName);
+                        foreach (var domain in domains)
+                        {
+                            try
+                            {
+                                if (domain.Id == AppDomain.CurrentDomain.Id)
+                                    continue;
+
+                                var obj = domain.CreateInstanceFromAndUnwrap(typeof(DomainEntryPoint).Assembly.Location, typeof(DomainEntryPoint).FullName);
+                                var domainEntryPoint = (IDomainEntryPoint)obj;
+
+                                domainEntryPoint.InjectDomain(inChannelName);
+                            }
+                            catch (Exception ex)
+                            {
+
+                                //client.WriteDomainError(domain.Id, ex.Message, ex.ToString());
+                                Console.WriteLine(ex);
+                            }
+                        }
+
+                        //client.InjectAllDomain(domains.Select(x => x.Id).ToArray());
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex);
+                        //client.WriteInjectError(AppDomain.CurrentDomain.Id, ex.Message, ex.ToString());
+                    }
                 }
             }
             catch (Exception ex)

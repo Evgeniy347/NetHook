@@ -190,7 +190,7 @@ namespace NetHook.Core
             return key;
         }
 
-        internal static MethodInfo[] GetMethods(Type type)
+        public static MethodInfo[] GetMethods(Type type)
         {
             var result = type.GetMethods(BindingFlags.Instance | BindingFlags.Static |
                     BindingFlags.Public | BindingFlags.NonPublic)

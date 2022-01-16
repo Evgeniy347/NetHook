@@ -45,6 +45,7 @@ namespace NetHook.UI
             this.treeView_assemblies.Name = "treeView_assemblies";
             this.treeView_assemblies.Size = new System.Drawing.Size(776, 381);
             this.treeView_assemblies.TabIndex = 0;
+            this.treeView_assemblies.AfterCheck += new System.Windows.Forms.TreeViewEventHandler(this.treeView_assemblies_AfterCheck);
             // 
             // button_Cancel
             // 

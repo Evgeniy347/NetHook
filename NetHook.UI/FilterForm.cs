@@ -1,5 +1,6 @@
 ﻿using NetHook.Cores.Extensions;
 using NetHook.Cores.Inject;
+using NetHook.Cores.Socket;
 using NetHook.UI.Extensions;
 using System;
 using System.Collections.Generic;
@@ -15,17 +16,18 @@ namespace NetHook.UI
 {
     public partial class FilterForm : Form
     {
-        public RemoteInjector RemoteInjector { get; }
+        private readonly LoggerServer _server;
         private readonly Dictionary<TreeNodeHelper, object> _nodes = new Dictionary<TreeNodeHelper, object>();
+        private bool _processing_AfterCheck;
 
         public List<MethodModelInfo> ResultValue { get; private set; }
 
         public readonly TreeViewSearchHelper _treeViewSearchHelper;
 
-        public FilterForm(RemoteInjector remoteInjector)
+        public FilterForm(LoggerServer loggerServer)
         {
             InitializeComponent();
-            RemoteInjector = remoteInjector;
+            _server = loggerServer;
             _treeViewSearchHelper = new TreeViewSearchHelper(treeView_assemblies);
 
             InitTreeView();
@@ -34,9 +36,10 @@ namespace NetHook.UI
             ResizeFormHelper.Instance.AddFixControl(button_Cancel);
         }
 
+
         private void InitTreeView()
         {
-            var assemblers = RemoteInjector.LoggerServer.GetAssembles();
+            AssembleModelInfo[] assemblers = _server.GetAssembles();
 
             treeView_assemblies.BeginUpdate();
 
@@ -126,6 +129,44 @@ namespace NetHook.UI
         private void FilterForm_SizeChanged(object sender, EventArgs e)
         {
             ResizeFormHelper.Instance.ResizeСhangesForm(this);
+        }
+
+        private void treeView_assemblies_AfterCheck(object sender, TreeViewEventArgs e)
+        {
+            if (_processing_AfterCheck)
+                return;
+
+            _processing_AfterCheck = true;
+            TreeNodeHelper treeNode = e.Node as TreeNodeHelper;
+
+            if (treeNode != null)
+            {
+                if (!treeNode.Checked)
+                    ChangeParent(treeNode, false);
+
+                ChangeChilds(treeNode, treeNode.Checked);
+            }
+
+            _processing_AfterCheck = false;
+        }
+
+        private void ChangeParent(TreeNodeHelper treeNode, bool value)
+        {
+            TreeNodeHelper parent = treeNode.Parent;
+            if (parent != null)
+            {
+                parent.Checked = value;
+                ChangeParent(parent, value);
+            }
+        }
+
+        private void ChangeChilds(TreeNodeHelper treeNode, bool value)
+        {
+            foreach (var node in treeNode.AllNodes)
+            {
+                node.Checked = value;
+                ChangeChilds(node, value);
+            }
         }
     }
 }

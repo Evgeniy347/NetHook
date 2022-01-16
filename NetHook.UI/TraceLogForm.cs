@@ -55,7 +55,14 @@ namespace NetHook.UI
 
         private string GetText(TraceFrameInfo frame)
         {
-            return $"{frame.Signature} {(frame.IsRunning ? "" : frame.Elapsed.ToString())}";
+            if (frame.IsRunning)
+            {
+                return $"{frame.Signature} Start:{frame.DateCreate:HH:mm:ss.fff}";
+            }
+            else
+            {
+                return $"{frame.Signature} Start:{frame.DateCreate:HH:mm:ss.fff} End:{frame.DateCreate.Add(frame.Elapsed):HH:mm:ss.fff} Elapsed:{frame.Elapsed}";
+            }
         }
 
         private void button_Ok_Click(object sender, EventArgs e)

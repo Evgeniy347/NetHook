@@ -192,7 +192,7 @@ namespace NetHook.Core
                 string outChannelName = $"ipc://ServerChannel_{Process.GetCurrentProcess().Id}/ServerMethods";
                 _ipcLogChannel = new IpcServerChannel($"ServerChannel_{Process.GetCurrentProcess().Id}");
                 ChannelServices.RegisterChannel(_ipcLogChannel, true);
-                RemotingConfiguration.RegisterWellKnownServiceType(typeof(LoggerInterface), "ServerMethods", WellKnownObjectMode.Singleton);
+                RemotingConfiguration.RegisterWellKnownServiceType(typeof(LoggerProxy), "ServerMethods", WellKnownObjectMode.Singleton);
 
                 //IpcServerChannel ipcLogChannel = RemoteHooking.IpcCreateServer<LoggerInterface>(ref outChannelName, WellKnownObjectMode.Singleton, WellKnownSidType.WorldSid);
 
