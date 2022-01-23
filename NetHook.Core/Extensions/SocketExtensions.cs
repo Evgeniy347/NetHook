@@ -2,6 +2,7 @@
 using SocketLibrary;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text;
@@ -13,17 +14,17 @@ namespace NetHook.Cores.Extensions
     {
         public static MessageSocket AcceptMessage(this ConnectedSocket connectedSocket, string method = null)
         {
+            Stopwatch stopwatch = Stopwatch.StartNew();
             string message = connectedSocket.FullReceive();
 
             if (string.IsNullOrEmpty(message))
                 return new MessageSocket();
-
             MessageSocket result = new MessageSocket(message);
 
             if (method != null && result.MethodName != method)
                 throw new Exception($"Check Method '{method}' {Environment.NewLine}{message}");
 
-            Console.WriteLine($"AcceptMessage:{result.MethodName} {result.Size} {connectedSocket.UnderlyingSocket.LocalEndPoint}");
+            Console.WriteLine($"AcceptMessage:{result.MethodName} {result.Size} {connectedSocket.UnderlyingSocket.LocalEndPoint} SocketElapsed {stopwatch.Elapsed}");
             return result;
         }
 
@@ -45,41 +46,41 @@ namespace NetHook.Cores.Extensions
             }
         }
 
-        public static void SendMessage<TMessage>(this ConnectedSocket connectedSocket, TMessage message)
-        {
-            string messageJson = message.SerializerJSON();
-            lock (connectedSocket)
-                connectedSocket.Send(messageJson);
-        }
-
         public static void SendMessage<TMessage>(this ConnectedSocket connectedSocket, string methodName, TMessage message)
         {
+            Stopwatch stopwatch = Stopwatch.StartNew();
             MessageSocket messageSocket = new MessageSocket()
             {
                 MethodName = methodName,
                 Body = message.SerializerJSON()
             };
 
-            Console.WriteLine($"SendMessage:{messageSocket.MethodName} {messageSocket.Size} {connectedSocket.UnderlyingSocket.LocalEndPoint}");
-            connectedSocket.Send(messageSocket.RawData);
+            connectedSocket.SendMessage(messageSocket);
         }
 
         public static void SendMessage(this ConnectedSocket connectedSocket, MessageSocket message)
         {
-            connectedSocket.Send(message.RawData);
+            Stopwatch stopwatch = Stopwatch.StartNew();
+
+            byte[] rawData = Encoding.UTF8.GetBytes(message.RawData);
+            byte[] bytesSize = BitConverter.GetBytes(rawData.Length);
+
+            connectedSocket.UnderlyingSocket.Send(bytesSize);
+            connectedSocket.UnderlyingSocket.Send(rawData);
+
+            Console.WriteLine($"SendMessage:{message.MethodName} {message.Size} {connectedSocket.UnderlyingSocket.LocalEndPoint} SocketElapsed {stopwatch.Elapsed}");
         }
 
         public static void SendMessage(this ConnectedSocket connectedSocket, string method, string body)
         {
+            Stopwatch stopwatch = Stopwatch.StartNew();
             MessageSocket message = new MessageSocket()
             {
                 MethodName = method,
                 Body = body
             };
 
-            Console.WriteLine($"Send:{message.MethodName} {message.Size} {connectedSocket.UnderlyingSocket.LocalEndPoint}");
-
-            connectedSocket.Send(message.RawData);
+            connectedSocket.SendMessage(message);
         }
 
         public static bool IsSocketConnected(this ConnectedSocket connectedSocket)
@@ -110,21 +111,21 @@ namespace NetHook.Cores.Extensions
 
         public static byte[] ReceiveAll(this ConnectedSocket connectedSocket)
         {
-            var buffer = new List<byte>();
+            while (connectedSocket.UnderlyingSocket.Available < 4)
+                Thread.Sleep(50);
 
-            while (connectedSocket.UnderlyingSocket.Available == 0)
-                Thread.Sleep(100);
+            byte[] sizeBytes = new byte[4];
+            var byteCounter = connectedSocket.UnderlyingSocket.Receive(sizeBytes, sizeBytes.Length, SocketFlags.None);
 
-            while (connectedSocket.UnderlyingSocket.Available > 0)
-            {
-                var currByte = new Byte[1];
-                var byteCounter = connectedSocket.UnderlyingSocket.Receive(currByte, currByte.Length, SocketFlags.None);
-                if (byteCounter.Equals(1))
-                    buffer.Add(currByte[0]);
-                else
-                    break;
-            }
-            return buffer.ToArray();
+            int size = BitConverter.ToInt32(sizeBytes, 0);
+
+            while (connectedSocket.UnderlyingSocket.Available != size)
+                Thread.Sleep(50);
+
+            var result = new byte[size];
+            connectedSocket.UnderlyingSocket.Receive(result, result.Length, SocketFlags.None);
+
+            return result;
         }
     }
 }

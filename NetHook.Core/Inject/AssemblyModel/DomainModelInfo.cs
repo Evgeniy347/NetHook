@@ -12,5 +12,8 @@ namespace NetHook.Cores.Inject
 
         [DataMember]
         public AssembleModelInfo[] Assemblies { get; set; } = new AssembleModelInfo[0];
+
+        [DataMember]
+        public TimeSpan Elapsed { get; set; }
     }
 }

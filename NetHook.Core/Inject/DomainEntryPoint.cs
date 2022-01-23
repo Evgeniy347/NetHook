@@ -179,21 +179,26 @@ namespace NetHook.Cores.Inject
 
         public static DomainModelInfo GetDomainInfo()
         {
+            Stopwatch stopwatch = Stopwatch.StartNew();
+
             DomainModelInfo result = new DomainModelInfo()
             {
                 Assemblies = AppDomain.CurrentDomain
                 .GetAssemblies()
                 //.Where(x => !x.FullName.StartsWith("NetHook.Core")
-                //    && !x.FullName.StartsWith("EasyHook")
-                //    && !x.FullName.StartsWith("EasyLoad")
-                //    && !x.FullName.StartsWith("System")
-                //    && !x.FullName.StartsWith("Microsoft")
-                //    && !x.FullName.StartsWith("Aspose")
-                //    && !x.FullName.StartsWith("mscorlib"))
+                //&& !x.FullName.StartsWith("EasyHook")
+                //&& !x.FullName.StartsWith("EasyLoad")
+                //&& !x.FullName.StartsWith("System")
+                //&& !x.FullName.StartsWith("Microsoft")
+                //&& !x.FullName.StartsWith("Aspose")
+                //&& !x.FullName.StartsWith("mscorlib"))
                 .Select(x => GetAssembleInfo(x))
                 .Where(x => string.IsNullOrEmpty(x.ErrorText))
                 .ToArray(),
             };
+
+            stopwatch.Stop();
+            result.Elapsed = stopwatch.Elapsed;
 
             return result;
         }

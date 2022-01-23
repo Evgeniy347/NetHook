@@ -21,7 +21,8 @@ namespace NetHook.Cores.Socket
             string[] addressParts = address.Split(':');
             _connectedSocket = new ConnectedSocket(addressParts[0], int.Parse(addressParts[1]));
             _connectedSocket.UnderlyingSocket.ReceiveTimeout = 60 * 1000;
-            _connectedSocket.UnderlyingSocket.ReceiveBufferSize = 60 * 1000;
+            _connectedSocket.UnderlyingSocket.ReceiveBufferSize = int.MaxValue;
+            _connectedSocket.UnderlyingSocket.SendBufferSize = int.MaxValue;
         }
 
         public MessageSocket AcceptMessage()

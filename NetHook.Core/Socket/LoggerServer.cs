@@ -5,6 +5,7 @@ using NetHook.Cores.Inject.AssemblyModel;
 using SocketLibrary;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -46,6 +47,8 @@ namespace NetHook.Cores.Socket
 
                     using (var listener = new SocketListener(port))
                     {
+                        listener.UnderlyingSocket.ReceiveBufferSize = int.MaxValue;
+                        listener.UnderlyingSocket.SendBufferSize = int.MaxValue;
                         Address = listener.UnderlyingSocket.LocalEndPoint.ToString();
                         listener.UnderlyingSocket.ReceiveTimeout = 10000;
                         while (true)
@@ -54,6 +57,8 @@ namespace NetHook.Cores.Socket
                             {
                                 ConnectedSocket remote = listener.Accept();
                                 remote.UnderlyingSocket.ReceiveTimeout = 5000;
+                                remote.UnderlyingSocket.ReceiveBufferSize = int.MaxValue;
+                                remote.UnderlyingSocket.SendBufferSize = int.MaxValue;
                                 RunThreadGetAssembly(remote);
                                 Console.WriteLine($"Открыто соединение по сокету '{remote.UnderlyingSocket.RemoteEndPoint}'");
                             }
