@@ -8,15 +8,18 @@ namespace NetHook.Cores.Inject
     public class TypeModelInfo
     {
         [DataMember]
-        public string Namespace { get; internal set; }
+        public string Namespace { get; set; }
 
         [DataMember]
-        public MethodModelInfo[] Methods { get; internal set; }
+        public MethodModelInfo[] Methods { get; set; } = new MethodModelInfo[0];
 
         [DataMember]
-        public string Name { get; internal set; }
+        public string Name { get; set; }
 
         [DataMember]
-        public string FullName { get; internal set; }
+        public string FullName { get; set; }
+
+        [DataMember]
+        public string ErrorText { get; set; }
     }
 }

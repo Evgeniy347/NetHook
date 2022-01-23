@@ -1,4 +1,5 @@
 ﻿using NetHook.Cores.Extensions;
+using NetHook.UI.Extensions;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -100,6 +101,7 @@ namespace NetHook.UI.Helpers
 
             thread.Name = "TextBoxStreamWriter";
             thread.SetApartmentState(ApartmentState.STA);
+            thread.IsBackground = true;
             thread.Start();
         }
 
@@ -107,14 +109,7 @@ namespace NetHook.UI.Helpers
         {
             try
             {
-                if (_textBox.InvokeRequired)
-                {
-                    _textBox.Invoke(new Action(() => WriteTextBox(value)));
-                }
-                else
-                {
-                    WriteTextBox(value);
-                }
+                _textBox.Invoke(() => WriteTextBox(value));
             }
             catch { }
         }

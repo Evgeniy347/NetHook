@@ -1,5 +1,6 @@
 ﻿using NetHook.Cores.Handlers.Trace;
 using NetHook.Cores.Inject;
+using NetHook.Cores.Inject.AssemblyModel;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;

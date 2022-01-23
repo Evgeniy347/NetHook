@@ -11,6 +11,6 @@ namespace NetHook.Cores.Inject
         public int CurrentID { get; set; }
 
         [DataMember]
-        public AssembleModelInfo[] Assemblies { get; internal set; }
+        public AssembleModelInfo[] Assemblies { get; set; } = new AssembleModelInfo[0];
     }
 }

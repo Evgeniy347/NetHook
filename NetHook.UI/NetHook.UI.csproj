@@ -32,6 +32,9 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationManifest>Properties\app.manifest</ApplicationManifest>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -45,6 +48,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Controls\TreeViewFast.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="Enums\ServerLogStatus.cs" />
     <Compile Include="Extensions\ControlHelper.cs" />
     <Compile Include="FastTreeView.cs">
@@ -121,6 +127,7 @@
       <DependentUpon>TraceLogForm.cs</DependentUpon>
     </EmbeddedResource>
     <None Include="app.config" />
+    <None Include="Properties\app.manifest" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -162,6 +169,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <None Include="Images\spinner.gif" />
     <Content Include="TextFile1.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

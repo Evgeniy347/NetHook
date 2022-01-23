@@ -1,4 +1,6 @@
 ﻿using EasyHook;
+using NetHook.Cores.Extensions;
+using NetHook.Cores.Socket;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -6,6 +8,7 @@ using System.IO.Pipes;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 
 namespace NetHook.Cores.Inject
 {
@@ -51,47 +54,67 @@ namespace NetHook.Cores.Inject
             }
         }
 
-        public void Run(RemoteHooking.IContext context, string inChannelName)
+        public void Run(RemoteHooking.IContext context, string address)
         {
             try
             {
-                using (DomainEntryPoint.SetContextClient(inChannelName))
+                using (LoggerClient client = new LoggerClient())
                 {
-                    //LoggerServer client = new LoggerServer(); 
-                    try
+                    client.OpenChanel(address);
+                    HashSet<int> injectDomainsIDs = new HashSet<int>();
+                    HashSet<int> errorDomainsIDs = new HashSet<int>();
+
+                    bool isFirst = true;
+                    while (client.Socket.IsSocketConnected())
                     {
-                        AppDomain[] domains = EnumAppDomains().ToArray();
-
-                        //client.AllDomain(domains.Select(x => x.Id).ToArray());
-
-                        foreach (var domain in domains)
+                        try
                         {
-                            try
+                            AppDomain[] domains = EnumAppDomains()
+                                .Where(x => x.Id != AppDomain.CurrentDomain.Id &&
+                                !injectDomainsIDs.Union(errorDomainsIDs).Contains(x.Id))
+                                .ToArray();
+
+                            string message = $"CountDomain:{domains.Length} newDomains:{domains.Select(x => x.Id).JoinString()} injectDomainsIDs:({injectDomainsIDs.JoinString()}) errorDomainsIDs:({errorDomainsIDs.JoinString()})";
+
+                            if (isFirst)
                             {
-                                if (domain.Id == AppDomain.CurrentDomain.Id)
-                                    continue;
-
-                                var obj = domain.CreateInstanceFromAndUnwrap(typeof(DomainEntryPoint).Assembly.Location, typeof(DomainEntryPoint).FullName);
-                                var domainEntryPoint = (IDomainEntryPoint)obj;
-
-                                domainEntryPoint.InjectDomain(inChannelName);
+                                var messageSocket = client.AcceptMessage();
+                                isFirst = false;
                             }
-                            catch (Exception ex)
-                            {
 
-                                //client.WriteDomainError(domain.Id, ex.Message, ex.ToString());
-                                Console.WriteLine(ex);
+                            if (domains.Length > 0)
+                            {
+                                client.SetInjectConnection(message);
+
+                                foreach (var domain in domains)
+                                {
+                                    try
+                                    {
+                                        var obj = domain.CreateInstanceFromAndUnwrap(typeof(DomainEntryPoint).Assembly.Location, typeof(DomainEntryPoint).FullName);
+                                        var domainEntryPoint = (IDomainEntryPoint)obj;
+
+                                        domainEntryPoint.InjectDomain(address);
+                                        injectDomainsIDs.Add(domain.Id);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        errorDomainsIDs.Add(domain.Id);
+                                        client.SetInjectConnection(ex.ToString());
+                                        Console.WriteLine(ex);
+                                    }
+                                }
                             }
                         }
+                        catch (Exception ex)
+                        {
+                            client.Send(ex.ToString());
+                            Console.WriteLine(ex);
+                        }
 
-                        //client.InjectAllDomain(domains.Select(x => x.Id).ToArray());
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine(ex);
-                        //client.WriteInjectError(AppDomain.CurrentDomain.Id, ex.Message, ex.ToString());
+                        Thread.Sleep(500);
                     }
                 }
+
             }
             catch (Exception ex)
             {

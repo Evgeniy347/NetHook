@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Windows.Forms;
 
 namespace NetHook.UI
@@ -30,23 +31,68 @@ namespace NetHook.UI
             _server = loggerServer;
             _treeViewSearchHelper = new TreeViewSearchHelper(treeView_assemblies);
 
-            InitTreeView();
+            UpdateTree();
             ResizeFormHelper.Instance.AddResizeControl(treeView_assemblies);
             ResizeFormHelper.Instance.AddFixControl(button_Ok);
             ResizeFormHelper.Instance.AddFixControl(button_Cancel);
+            pictureBox_Load_Processing.Visible = true;
         }
-
 
         private void InitTreeView()
         {
             AssembleModelInfo[] assemblers = _server.GetAssembles();
 
             treeView_assemblies.BeginUpdate();
+            treeView_assemblies.Nodes.Clear();
+            _nodes.Clear();
+            _treeViewSearchHelper.HideRootNodes.Clear();
 
             using (treeView_assemblies.CreateUpdateContext())
                 treeView_assemblies.Nodes.AddRange(assemblers.Select(GetNode).ToArray());
 
             treeView_assemblies.EndUpdate();
+
+            pictureBox_Load_Processing.Visible = false;
+            toolStripTextBox_searchValue_Click(null, null);
+        }
+
+        private void toolStripButton_Update_Click(object sender, EventArgs e)
+        {
+            UpdateTree();
+        }
+
+        private void UpdateTree(bool newRequest = true)
+        {
+            pictureBox_Load_Processing.Visible = true;
+
+            Thread thread = new Thread(() =>
+            {
+                if (newRequest)
+                {
+                    int countUpdateAssembies = 0;
+
+                    _server.ChangeAssemble = null;
+
+                    _server.ChangeAssemble += (x) =>
+                    {
+                        countUpdateAssembies++;
+                        if (countUpdateAssembies >= _server.CountConnection)
+                        {
+                            this.Invoke(() => InitTreeView());
+                            _server.ChangeAssemble = null;
+                        }
+                    };
+
+                    _server.RunThreadsGetAssembly();
+                }
+                else
+                {
+                    this.Invoke(() => InitTreeView());
+                }
+            });
+            thread.Name = "UpdateTree";
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
         }
 
         private TreeNodeHelper GetNode(AssembleModelInfo assembleModel)
@@ -76,14 +122,15 @@ namespace NetHook.UI
             TreeNodeHelper node = new TreeNodeHelper(typeModel.Name);
             _nodes[node] = typeModel;
 
-            node.AddRange(typeModel.Methods.Select(x => GetNode(x)).ToArray());
+            node.AddRange(typeModel.Methods.Select(x => GetNode(x, typeModel)).ToArray());
 
             return node;
         }
 
-        private TreeNodeHelper GetNode(MethodModelInfo methodlInfo)
+        private TreeNodeHelper GetNode(MethodModelInfo methodlInfo, TypeModelInfo typeModel)
         {
             TreeNodeHelper node = new TreeNodeHelper(methodlInfo.Signature);
+            methodlInfo.TypeName = typeModel.FullName;
             _nodes[node] = methodlInfo;
 
             return node;
@@ -167,6 +214,20 @@ namespace NetHook.UI
                 node.Checked = value;
                 ChangeChilds(node, value);
             }
+        }
+
+        private void treeView_assemblies_BeforeCollapse(object sender, TreeViewCancelEventArgs e)
+        {
+            TreeNodeHelper node = e.Node as TreeNodeHelper;
+            if (node != null)
+                node.BeforeCollapse();
+        }
+
+        private void treeView_assemblies_AfterExpand(object sender, TreeViewEventArgs e)
+        {
+            TreeNodeHelper node = e.Node as TreeNodeHelper;
+            if (node != null)
+                node.AfterExpand();
         }
     }
 }

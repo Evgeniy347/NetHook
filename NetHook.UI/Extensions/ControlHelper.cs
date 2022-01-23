@@ -39,5 +39,21 @@ namespace NetHook.UI.Extensions
                 target.Refresh();
             }
         }
+
+        public static void Invoke(this Control control, Action action)
+        {
+            if (control.Disposing)
+                return;
+
+            if (control.InvokeRequired)
+                control.Invoke(new Action(() =>
+                {
+                    if (control.Disposing)
+                        return;
+                    action();
+                }));
+            else
+                action();
+        }
     }
 }

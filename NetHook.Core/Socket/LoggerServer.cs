@@ -1,6 +1,7 @@
 ﻿using NetHook.Cores.Extensions;
 using NetHook.Cores.Handlers.Trace;
 using NetHook.Cores.Inject;
+using NetHook.Cores.Inject.AssemblyModel;
 using SocketLibrary;
 using System;
 using System.Collections.Generic;
@@ -14,26 +15,38 @@ namespace NetHook.Cores.Socket
 {
     public class LoggerServer : IDisposable
     {
-        private List<ConnectedSocket> _connectedSockets = new List<ConnectedSocket>();
+        private List<ConnectedSocket> _connectionSockets = new List<ConnectedSocket>();
+        private List<ConnectedSocket> _injectSocket = new List<ConnectedSocket>();
         private Thread _serverThread;
         private Thread _runTraceLog;
+        private MethodModelInfo[] _methodsHook;
 
-        public int Port { get; private set; }
+        public int CountConnection
+        {
+            get
+            {
+                lock (_connectionSockets)
+                    return _connectionSockets.Count;
+            }
+        }
+
+        public string Address { get; private set; }
 
         public void StartServer()
         {
             if (_serverThread != null)
                 return;
 
-            Thread thread = new Thread(() =>
+            _serverThread = new Thread(() =>
             {
                 try
                 {
-                    Port = FreePort();
-                    Console.WriteLine($"StartServer Start {Port}");
+                    int port = FreePort();
+                    Console.WriteLine($"StartServer Start {Address}");
 
-                    using (var listener = new SocketListener(Port))
+                    using (var listener = new SocketListener(port))
                     {
+                        Address = listener.UnderlyingSocket.LocalEndPoint.ToString();
                         listener.UnderlyingSocket.ReceiveTimeout = 10000;
                         while (true)
                         {
@@ -41,10 +54,10 @@ namespace NetHook.Cores.Socket
                             {
                                 ConnectedSocket remote = listener.Accept();
                                 remote.UnderlyingSocket.ReceiveTimeout = 5000;
-                                RunThreadReceive(remote);
+                                RunThreadGetAssembly(remote);
                                 Console.WriteLine($"Открыто соединение по сокету '{remote.UnderlyingSocket.RemoteEndPoint}'");
                             }
-                            catch (System.Net.Sockets.SocketException ex)
+                            catch (SocketException ex)
                             {
                                 if (ex.SocketErrorCode == SocketError.TimedOut)
                                     Console.WriteLine("ConnectedSocket TimedOut");
@@ -67,10 +80,35 @@ namespace NetHook.Cores.Socket
                     Console.WriteLine(ex);
                 }
             });
-            thread.Name = "StartServer";
+
+            _serverThread.Name = "StartServer";
+            _serverThread.SetApartmentState(ApartmentState.STA);
+            _serverThread.IsBackground = true;
+            _serverThread.Start();
+
+        }
+
+        private void RunInjectThread(ConnectedSocket connectedSocket)
+        {
+            Thread thread = new Thread(() =>
+            {
+                while (connectedSocket.IsSocketConnected())
+                {
+                    try
+                    {
+                        MessageSocket message = connectedSocket.AcceptMessage();
+                        Console.WriteLine(message.RawData);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex);
+                    }
+                }
+            });
+
+            thread.Name = "InjectThread";
             thread.SetApartmentState(ApartmentState.STA);
             thread.IsBackground = true;
-            _serverThread = thread;
             thread.Start();
         }
 
@@ -83,34 +121,59 @@ namespace NetHook.Cores.Socket
             return port;
         }
 
-        public void RunThreadReceive(ConnectedSocket connectedSocket)
+        public void RunThreadsGetAssembly()
+        {
+            foreach (var socket in _connectionSockets)
+                RunThreadGetAssembly(socket);
+        }
+
+        public void RunThreadGetAssembly(ConnectedSocket connectedSocket)
         {
             Thread thread = new Thread(() =>
             {
-                RunReceive(connectedSocket);
+                GetAssemblyInfo(connectedSocket);
             });
-            thread.Name = "RunThreadReceive";
+            thread.Name = "GetAssemblyInfo";
             thread.SetApartmentState(ApartmentState.STA);
             thread.IsBackground = true;
             thread.Start();
         }
 
-        private void RunReceive(ConnectedSocket connectedSocket)
+        private void GetAssemblyInfo(ConnectedSocket connectedSocket)
         {
             Console.WriteLine("RunReceive Start");
             while (true)
             {
                 try
                 {
-                    MessageSocket message = connectedSocket.AcceptMessage();
+                    MessageSocket message = null;
+                    lock (connectedSocket)
+                    {
+                        connectedSocket.SendMessage("SendModuleInfo", "");
+                        message = connectedSocket.AcceptMessage();
+                    }
 
-                    if (message.MethodName == "SendModuleInfo")
+                    if (message.MethodName == "InjectDomain")
+                    {
+                        Console.WriteLine(message.RawData);
+                        _injectSocket.Add(connectedSocket);
+                        RunInjectThread(connectedSocket);
+                        return;
+                    }
+                    else if (message.MethodName == "SendModuleInfo")
                     {
                         DomainModelInfo domainModel = message.Body.DeserializeJSON<DomainModelInfo>();
                         SendModuleInfo(domainModel);
 
-                        lock (_connectedSockets)
-                            _connectedSockets.Add(connectedSocket);
+                        lock (_connectionSockets)
+                        {
+                            if (!_connectionSockets.Contains(connectedSocket))
+                            {
+                                _connectionSockets.Add(connectedSocket);
+                                if (_methodsHook != null && _methodsHook.Length > 0)
+                                    SetHook(_methodsHook, connectedSocket);
+                            }
+                        }
                         return;
                     }
                     else if (message.MethodName == "Error")
@@ -123,7 +186,7 @@ namespace NetHook.Cores.Socket
                         Console.WriteLine(message.RawData);
                     }
                 }
-                catch (System.Net.Sockets.SocketException ex)
+                catch (SocketException ex)
                 {
                     if (ex.SocketErrorCode == SocketError.TimedOut)
                     {
@@ -146,27 +209,35 @@ namespace NetHook.Cores.Socket
 
         public void SetHook(MethodModelInfo[] methods)
         {
-            lock (_connectedSockets)
+            lock (_connectionSockets)
             {
-                foreach (ConnectedSocket connectedSocket in _connectedSockets.ToArray())
+                foreach (ConnectedSocket connectedSocket in _connectionSockets.ToArray())
+                    SetHook(methods, connectedSocket);
+
+                _methodsHook = methods;
+            }
+        }
+
+        private void SetHook(MethodModelInfo[] methods, ConnectedSocket connectedSocket)
+        {
+            try
+            {
+                string json = methods.SerializerJSON();
+
+                lock (connectedSocket)
                 {
-                    try
-                    {
-                        Console.WriteLine("SetHook");
-                        string json = methods.SerializerJSON();
-                        connectedSocket.SendMessage("SetHook", json);
-                        MessageSocket messageReceive = connectedSocket.AcceptMessage();
-                        Console.WriteLine(messageReceive.RawData);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine(ex);
-                        if (!connectedSocket.IsSocketConnected())
-                        {
-                            lock (_connectedSockets)
-                                _connectedSockets.Remove(connectedSocket);
-                        }
-                    }
+                    connectedSocket.SendMessage("SetHook", json);
+                    MessageSocket messageReceive = connectedSocket.AcceptMessage();
+                    Console.WriteLine(messageReceive.RawData);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+                if (!connectedSocket.IsSocketConnected())
+                {
+                    lock (_connectionSockets)
+                        _connectionSockets.Remove(connectedSocket);
                 }
             }
         }
@@ -174,8 +245,13 @@ namespace NetHook.Cores.Socket
         public void StopTraceLog()
         {
             Console.WriteLine("StopTraceLog");
-            _runTraceLog?.Abort();
-            _runTraceLog = null;
+
+            if (_runTraceLog != null)
+            {
+                Thread thread = _runTraceLog;
+                _runTraceLog = null;
+                thread.Join();
+            }
         }
 
         public void RunTraceLog()
@@ -186,19 +262,24 @@ namespace NetHook.Cores.Socket
             Console.WriteLine("RunTraceLog");
             _runTraceLog = new Thread(() =>
             {
-                while (true)
+                while (_runTraceLog != null)
                 {
-                    if (_connectedSockets.Count > 0)
+                    if (_connectionSockets.Count > 0)
                     {
                         List<ThreadInfo> result = new List<ThreadInfo>();
-                        lock (_connectedSockets)
+                        lock (_connectionSockets)
                         {
-                            foreach (ConnectedSocket connectedSocket in _connectedSockets.ToArray())
+                            foreach (ConnectedSocket connectedSocket in _connectionSockets.ToArray())
                             {
                                 try
                                 {
-                                    connectedSocket.SendMessage("UploadThreadInfo", string.Empty);
-                                    MessageSocket messageReceive = connectedSocket.AcceptMessage("UploadThreadInfo");
+                                    MessageSocket messageReceive = null;
+
+                                    lock (connectedSocket)
+                                    {
+                                        connectedSocket.SendMessage("UploadThreadInfo", string.Empty);
+                                        messageReceive = connectedSocket.AcceptMessage("UploadThreadInfo");
+                                    }
 
                                     ThreadInfo[] frameInfos = messageReceive.Body.DeserializeJSON<ThreadInfo[]>();
                                     if (frameInfos != null)
@@ -209,8 +290,8 @@ namespace NetHook.Cores.Socket
                                     Console.WriteLine(ex);
                                     if (!connectedSocket.IsSocketConnected())
                                     {
-                                        lock (_connectedSockets)
-                                            _connectedSockets.Remove(connectedSocket);
+                                        lock (_connectionSockets)
+                                            _connectionSockets.Remove(connectedSocket);
                                     }
                                 }
                             }
@@ -218,6 +299,7 @@ namespace NetHook.Cores.Socket
 
                         ReceveTraceLog?.Invoke(result.ToArray());
                     }
+
                     Thread.Sleep(500);
                 }
             });
@@ -239,11 +321,13 @@ namespace NetHook.Cores.Socket
 
         private void SendModuleInfo(DomainModelInfo domainModel)
         {
+            foreach (var assemble in domainModel.Assemblies.Where(x => !string.IsNullOrEmpty(x.ErrorText)))
+                Console.WriteLine(assemble.ErrorText);
+
             lock (DomainInfos)
-            {
                 DomainInfos.Add(domainModel);
-                ChangeAssemble?.Invoke(GetAssembles());
-            }
+
+            ChangeAssemble?.Invoke(GetAssembles());
         }
 
         public AssembleModelInfo[] GetAssembles()
@@ -253,7 +337,8 @@ namespace NetHook.Cores.Socket
             {
                 return DomainInfos.SelectMany(x => x.Assemblies)
                 .GroupBy(x => x.FullName)
-                .Select(x => x.First())
+                .Select(x => x.FirstOrDefault(y => string.IsNullOrEmpty(y.ErrorText)))
+                .Where(x => x != null)
                 .ToArray();
             }
         }

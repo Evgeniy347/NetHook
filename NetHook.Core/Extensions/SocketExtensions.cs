@@ -23,7 +23,7 @@ namespace NetHook.Cores.Extensions
             if (method != null && result.MethodName != method)
                 throw new Exception($"Check Method '{method}' {Environment.NewLine}{message}");
 
-            Console.WriteLine($"AcceptMessage:{result.MethodName} {result.Size}");
+            Console.WriteLine($"AcceptMessage:{result.MethodName} {result.Size} {connectedSocket.UnderlyingSocket.LocalEndPoint}");
             return result;
         }
 
@@ -60,15 +60,13 @@ namespace NetHook.Cores.Extensions
                 Body = message.SerializerJSON()
             };
 
-            Console.WriteLine($"SendMessage:{messageSocket.MethodName} {messageSocket.Size}");
-            lock (connectedSocket)
-                connectedSocket.Send(messageSocket.RawData);
+            Console.WriteLine($"SendMessage:{messageSocket.MethodName} {messageSocket.Size} {connectedSocket.UnderlyingSocket.LocalEndPoint}");
+            connectedSocket.Send(messageSocket.RawData);
         }
 
         public static void SendMessage(this ConnectedSocket connectedSocket, MessageSocket message)
         {
-            lock (connectedSocket)
-                connectedSocket.Send(message.RawData);
+            connectedSocket.Send(message.RawData);
         }
 
         public static void SendMessage(this ConnectedSocket connectedSocket, string method, string body)
@@ -79,10 +77,9 @@ namespace NetHook.Cores.Extensions
                 Body = body
             };
 
-            Console.WriteLine($"Send:{message.MethodName} {message.Size}");
+            Console.WriteLine($"Send:{message.MethodName} {message.Size} {connectedSocket.UnderlyingSocket.LocalEndPoint}");
 
-            lock (connectedSocket)
-                connectedSocket.Send(message.RawData);
+            connectedSocket.Send(message.RawData);
         }
 
         public static bool IsSocketConnected(this ConnectedSocket connectedSocket)
@@ -115,22 +112,19 @@ namespace NetHook.Cores.Extensions
         {
             var buffer = new List<byte>();
 
-            lock (connectedSocket)
-            {
-                while (connectedSocket.UnderlyingSocket.Available == 0)
-                    Thread.Sleep(100);
+            while (connectedSocket.UnderlyingSocket.Available == 0)
+                Thread.Sleep(100);
 
-                while (connectedSocket.UnderlyingSocket.Available > 0)
-                {
-                    var currByte = new Byte[1];
-                    var byteCounter = connectedSocket.UnderlyingSocket.Receive(currByte, currByte.Length, SocketFlags.None);
-                    if (byteCounter.Equals(1))
-                        buffer.Add(currByte[0]);
-                    else
-                        break;
-                }
-                return buffer.ToArray();
+            while (connectedSocket.UnderlyingSocket.Available > 0)
+            {
+                var currByte = new Byte[1];
+                var byteCounter = connectedSocket.UnderlyingSocket.Receive(currByte, currByte.Length, SocketFlags.None);
+                if (byteCounter.Equals(1))
+                    buffer.Add(currByte[0]);
+                else
+                    break;
             }
+            return buffer.ToArray();
         }
     }
 }

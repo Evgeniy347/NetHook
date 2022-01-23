@@ -1,5 +1,6 @@
 ﻿using NetHook.Cores.Extensions;
 using NetHook.Cores.Inject;
+using NetHook.Cores.Inject.AssemblyModel;
 using SocketLibrary;
 using System;
 using System.Collections.Generic;
@@ -15,16 +16,17 @@ namespace NetHook.Cores.Socket
         public LoggerClient()
         { }
 
-        public void OpenChanel(string address, int port)
+        public void OpenChanel(string address)
         {
-            _connectedSocket = new ConnectedSocket(address, port);
-        }
-
-        public void OpenChanel()
-        {
-            _connectedSocket = new ConnectedSocket("127.0.0.1", 1339);
+            string[] addressParts = address.Split(':');
+            _connectedSocket = new ConnectedSocket(addressParts[0], int.Parse(addressParts[1]));
             _connectedSocket.UnderlyingSocket.ReceiveTimeout = 60 * 1000;
             _connectedSocket.UnderlyingSocket.ReceiveBufferSize = 60 * 1000;
+        }
+
+        public MessageSocket AcceptMessage()
+        {
+            return _connectedSocket.AcceptMessage();
         }
 
         internal void UploadThreadInfo(ThreadInfo[] package)
@@ -47,26 +49,14 @@ namespace NetHook.Cores.Socket
             _connectedSocket.SendMessage($"Error", error);
         }
 
-        public string WaitServer(out string operation)
-        {
-            string raw = _connectedSocket.FullReceive().Trim('\"').Replace("\\\"", "\"");
-            int indexType = raw.IndexOf("|");
-
-            if (indexType == -1)
-            {
-                operation = raw;
-                return string.Empty;
-            }
-
-            operation = raw.Substring(0, indexType);
-            string objectJson = raw.Substring(indexType + 1);
-            return objectJson;
-        }
-
         public void Dispose()
         {
             _connectedSocket?.Dispose();
         }
 
+        internal void SetInjectConnection(string message)
+        {
+            _connectedSocket.SendMessage($"InjectDomain", message);
+        }
     }
 }

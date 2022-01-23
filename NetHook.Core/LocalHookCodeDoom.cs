@@ -152,6 +152,11 @@ namespace NetHook.Core
                 catch (Exception ex)
                 {
                     StringBuilder stringBuilder = new StringBuilder();
+
+                    stringBuilder.AppendLine(new string('*', 50));
+                    stringBuilder.AppendLine(Save());
+                    stringBuilder.AppendLine(new string('*', 50));
+
                     foreach (var line in result.Errors)
                         stringBuilder.AppendLine(line.ToString());
 

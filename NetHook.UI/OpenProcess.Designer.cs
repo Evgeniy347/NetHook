@@ -33,15 +33,18 @@ namespace NetHook.UI
             this.button_OK = new System.Windows.Forms.Button();
             this.dataGridView_ProcessList = new System.Windows.Forms.DataGridView();
             this.toolStrip1 = new System.Windows.Forms.ToolStrip();
+            this.toolStripButton_Update = new System.Windows.Forms.ToolStripButton();
             this.toolStripButton1 = new System.Windows.Forms.ToolStripButton();
             this.toolStripTextBox_searchValue = new System.Windows.Forms.ToolStripTextBox();
+            this.pictureBox_Load_Processing = new System.Windows.Forms.PictureBox();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView_ProcessList)).BeginInit();
             this.toolStrip1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox_Load_Processing)).BeginInit();
             this.SuspendLayout();
             // 
             // button_cancell
             // 
-            this.button_cancell.Location = new System.Drawing.Point(305, 425);
+            this.button_cancell.Location = new System.Drawing.Point(319, 425);
             this.button_cancell.Name = "button_cancell";
             this.button_cancell.Size = new System.Drawing.Size(75, 23);
             this.button_cancell.TabIndex = 1;
@@ -51,7 +54,7 @@ namespace NetHook.UI
             // 
             // button_OK
             // 
-            this.button_OK.Location = new System.Drawing.Point(224, 425);
+            this.button_OK.Location = new System.Drawing.Point(238, 425);
             this.button_OK.Name = "button_OK";
             this.button_OK.Size = new System.Drawing.Size(75, 23);
             this.button_OK.TabIndex = 2;
@@ -64,7 +67,7 @@ namespace NetHook.UI
             this.dataGridView_ProcessList.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.dataGridView_ProcessList.Location = new System.Drawing.Point(12, 33);
             this.dataGridView_ProcessList.Name = "dataGridView_ProcessList";
-            this.dataGridView_ProcessList.Size = new System.Drawing.Size(368, 386);
+            this.dataGridView_ProcessList.Size = new System.Drawing.Size(382, 386);
             this.dataGridView_ProcessList.TabIndex = 3;
             this.dataGridView_ProcessList.SelectionChanged += new System.EventHandler(this.dataGridView_ProcessList_SelectionChanged);
             this.dataGridView_ProcessList.DoubleClick += new System.EventHandler(this.dataGridView_ProcessList_DoubleClick);
@@ -72,13 +75,24 @@ namespace NetHook.UI
             // toolStrip1
             // 
             this.toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.toolStripButton_Update,
             this.toolStripButton1,
             this.toolStripTextBox_searchValue});
             this.toolStrip1.Location = new System.Drawing.Point(0, 0);
             this.toolStrip1.Name = "toolStrip1";
-            this.toolStrip1.Size = new System.Drawing.Size(392, 25);
+            this.toolStrip1.Size = new System.Drawing.Size(401, 25);
             this.toolStrip1.TabIndex = 4;
             this.toolStrip1.Text = "toolStrip1";
+            // 
+            // toolStripButton_Update
+            // 
+            this.toolStripButton_Update.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.toolStripButton_Update.Image = global::NetHook.UI.Properties.Resources.arrow_clockwise;
+            this.toolStripButton_Update.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.toolStripButton_Update.Name = "toolStripButton_Update";
+            this.toolStripButton_Update.Size = new System.Drawing.Size(23, 22);
+            this.toolStripButton_Update.Text = "toolStripButton_Update";
+            this.toolStripButton_Update.Click += new System.EventHandler(this.toolStripButton_Update_Click);
             // 
             // toolStripButton1
             // 
@@ -98,11 +112,23 @@ namespace NetHook.UI
             this.toolStripTextBox_searchValue.Size = new System.Drawing.Size(300, 25);
             this.toolStripTextBox_searchValue.TextChanged += new System.EventHandler(this.toolStripTextBox_searchValue_TextChanged);
             // 
+            // pictureBox_Load_Processing
+            // 
+            this.pictureBox_Load_Processing.Image = global::NetHook.UI.Properties.Resources.spinner;
+            this.pictureBox_Load_Processing.Location = new System.Drawing.Point(369, 0);
+            this.pictureBox_Load_Processing.Name = "pictureBox_Load_Processing";
+            this.pictureBox_Load_Processing.Size = new System.Drawing.Size(25, 25);
+            this.pictureBox_Load_Processing.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+            this.pictureBox_Load_Processing.TabIndex = 7;
+            this.pictureBox_Load_Processing.TabStop = false;
+            this.pictureBox_Load_Processing.Visible = false;
+            // 
             // OpenProcess
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(392, 450);
+            this.ClientSize = new System.Drawing.Size(401, 450);
+            this.Controls.Add(this.pictureBox_Load_Processing);
             this.Controls.Add(this.toolStrip1);
             this.Controls.Add(this.dataGridView_ProcessList);
             this.Controls.Add(this.button_OK);
@@ -113,6 +139,7 @@ namespace NetHook.UI
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView_ProcessList)).EndInit();
             this.toolStrip1.ResumeLayout(false);
             this.toolStrip1.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox_Load_Processing)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -125,5 +152,7 @@ namespace NetHook.UI
         private System.Windows.Forms.ToolStrip toolStrip1;
         private System.Windows.Forms.ToolStripButton toolStripButton1;
         private System.Windows.Forms.ToolStripTextBox toolStripTextBox_searchValue;
+        private System.Windows.Forms.ToolStripButton toolStripButton_Update;
+        private System.Windows.Forms.PictureBox pictureBox_Load_Processing;
     }
 }

@@ -3,6 +3,7 @@ using NetHook.Core.Helpers;
 using NetHook.Cores.Extensions;
 using NetHook.Cores.Handlers;
 using NetHook.Cores.Handlers.Trace;
+using NetHook.Cores.Inject.AssemblyModel;
 using NetHook.Cores.Socket;
 using System;
 using System.Collections.Generic;
@@ -22,7 +23,7 @@ namespace NetHook.Cores.Inject
     public class DomainEntryPoint : MarshalByRefObject, IDomainEntryPoint
     {
 
-        public void InjectDomain(string inChannelName)
+        public void InjectDomain(string address)
         {
             Thread thread = new Thread(() =>
             {
@@ -31,17 +32,13 @@ namespace NetHook.Cores.Inject
                     AppDomain currentDomain = AppDomain.CurrentDomain;
                     currentDomain.AssemblyResolve += new ResolveEventHandler(CurrentDomain_AssemblyResolve);
 
-                    Console.WriteLine(inChannelName);
-                    DomainModelInfo domainInfo = GetDomainInfo();
+                    Console.WriteLine(address);
 
                     using (LoggerClient client = new LoggerClient())
                     {
-                        client.OpenChanel();
-
+                        client.OpenChanel(address);
                         try
                         {
-                            client.SendModuleInfo(domainInfo);
-                            Console.WriteLine("OK");
                             object objLock = new object();
 
                             using (LocalHookAdapter adapter = LocalHookAdapter.CreateInstance())
@@ -53,10 +50,16 @@ namespace NetHook.Cores.Inject
                                 {
                                     Console.WriteLine("WaitServer");
 
-                                    MessageSocket message = client.Socket.AcceptMessage();
+                                    MessageSocket message = client.AcceptMessage();
 
                                     Console.WriteLine("operation:" + message.MethodName);
-                                    if (message.MethodName == "SetHook")
+
+                                    if (message.MethodName == "SendModuleInfo")
+                                    {
+                                        DomainModelInfo domainInfo = GetDomainInfo();
+                                        client.SendModuleInfo(domainInfo);
+                                    }
+                                    else if (message.MethodName == "SetHook")
                                     {
                                         MethodModelInfo[] methods = message.Body.DeserializeJSON<MethodModelInfo[]>();
                                         AddHookMethods(adapter, methods);
@@ -104,78 +107,6 @@ namespace NetHook.Cores.Inject
             thread.SetApartmentState(ApartmentState.STA);
             thread.Start();
         }
-        //public void InjectDomain(string inChannelName)
-        //{
-        //    Thread thread = new Thread(() =>
-        //    {
-        //        try
-        //        {
-        //            AppDomain currentDomain = AppDomain.CurrentDomain;
-        //            currentDomain.AssemblyResolve += new ResolveEventHandler(CurrentDomain_AssemblyResolve);
-
-        //            Console.WriteLine(inChannelName);
-        //            DomainModelInfo domainInfo = GetDomainInfo();
-
-        //            using (SetContextClient(inChannelName))
-        //            {
-        //                LoggerProxy client = new LoggerProxy();
-        //                try
-        //                {
-
-        //                    client.SendModuleInfo(AppDomain.CurrentDomain.Id, domainInfo);
-        //                    Console.WriteLine("OK");
-        //                    object objLock = new object();
-
-        //                    using (LocalHookAdapter adapter = LocalHookAdapter.CreateInstance())
-        //                    {
-        //                        TraceHandler handler = new TraceHandler(new TraceHandlerSetting());
-        //                        adapter.RegisterHandler(handler);
-
-        //                        DateTime lastUpdate = DateTime.MinValue;
-
-        //                        while (true)
-        //                        {
-        //                            if (lastUpdate != client.ChangeDateHook)
-        //                            {
-        //                                AddHookMethods(adapter, client.GetHook());
-        //                                lastUpdate = client.ChangeDateHook;
-        //                            }
-
-        //                            Thread.Sleep(500);
-
-        //                            ThreadInfo[] package = null;
-
-        //                            lock (objLock)
-        //                            {
-        //                                package = handler
-        //                                    .GetStackTrace()
-        //                                    .Select(x => ConvertFrames(x.Key, x.Value))
-        //                                    .ToArray();
-        //                            }
-
-        //                            if (package.Length > 0)
-        //                            {
-        //                                client.UploadThreadInfo(package);
-        //                            }
-        //                        }
-        //                    }
-        //                }
-        //                catch (Exception ex)
-        //                {
-        //                    Console.WriteLine(ex);
-        //                    client.WriteDomainError(AppDomain.CurrentDomain.Id, ex.Message, ex.ToString());
-        //                }
-        //            }
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            Console.WriteLine(ex);
-        //        }
-        //    });
-
-        //    thread.SetApartmentState(ApartmentState.STA);
-        //    thread.Start();
-        //}
 
         private Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
         {
@@ -252,12 +183,15 @@ namespace NetHook.Cores.Inject
             {
                 Assemblies = AppDomain.CurrentDomain
                 .GetAssemblies()
-                .Where(x => !x.FullName.StartsWith("NetHook.Core")
-                    && !x.FullName.StartsWith("EasyHook")
-                    && !x.FullName.StartsWith("EasyLoad")
-                    && !x.FullName.StartsWith("System")
-                    && !x.FullName.StartsWith("mscorlib"))
+                //.Where(x => !x.FullName.StartsWith("NetHook.Core")
+                //    && !x.FullName.StartsWith("EasyHook")
+                //    && !x.FullName.StartsWith("EasyLoad")
+                //    && !x.FullName.StartsWith("System")
+                //    && !x.FullName.StartsWith("Microsoft")
+                //    && !x.FullName.StartsWith("Aspose")
+                //    && !x.FullName.StartsWith("mscorlib"))
                 .Select(x => GetAssembleInfo(x))
+                .Where(x => string.IsNullOrEmpty(x.ErrorText))
                 .ToArray(),
             };
 
@@ -266,17 +200,28 @@ namespace NetHook.Cores.Inject
 
         private static AssembleModelInfo GetAssembleInfo(Assembly assembly)
         {
-            AssembleModelInfo result = new AssembleModelInfo()
+            AssembleModelInfo result = null;
+            try
             {
-                FullName = assembly.FullName,
-                Name = assembly.GetName().Name,
-            };
+                result = new AssembleModelInfo()
+                {
+                    FullName = assembly.FullName,
+                    Name = assembly.GetName().Name,
+                };
 
-            result.Types = assembly.GetTypes()
-                .Where(Condition)
-                .Select(x => GetTypeInfo(x))
-                .Where(x => x.Methods.Length > 0)
-                .ToArray();
+                result.Types = assembly.GetTypes()
+                    .Where(Condition)
+                    .Select(x => GetTypeInfo(x))
+                    .Where(x => !string.IsNullOrEmpty(x.ErrorText) || x.Methods.Length > 0)
+                    .ToArray();
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                if (result != null)
+                    result.ErrorText = ex.ToString();
+            }
 
             return result;
         }
@@ -297,16 +242,27 @@ namespace NetHook.Cores.Inject
 
         private static TypeModelInfo GetTypeInfo(Type type)
         {
-            TypeModelInfo result = new TypeModelInfo()
+            TypeModelInfo result = null;
+            try
             {
-                Name = type.Name,
-                FullName = type.FullName,
-                Namespace = type.Namespace
-            };
+                result = new TypeModelInfo()
+                {
+                    Name = type.Name,
+                    FullName = type.AssemblyQualifiedName,
+                    Namespace = type.Namespace
+                };
 
-            result.Methods = LocalHookAdapter.GetMethods(type)
-               .Select(x => GetMethodInfo(x))
-               .ToArray();
+                result.Methods = LocalHookAdapter.GetMethods(type)
+                   .Select(x => GetMethodInfo(x))
+                   .ToArray();
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                if (result != null)
+                    result.ErrorText = ex.ToString();
+            }
 
             return result;
         }
@@ -316,7 +272,6 @@ namespace NetHook.Cores.Inject
             MethodModelInfo result = new MethodModelInfo()
             {
                 Name = methodInfo.Name,
-                TypeName = methodInfo.DeclaringType.AssemblyQualifiedName,
                 Signature = GetSignature(methodInfo)
             };
 

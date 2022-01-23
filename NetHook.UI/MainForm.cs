@@ -1,7 +1,9 @@
 ﻿using NetHook.Core;
 using NetHook.Cores.Inject;
+using NetHook.Cores.Inject.AssemblyModel;
 using NetHook.Cores.Socket;
 using NetHook.UI.Enums;
+using NetHook.UI.Extensions;
 using NetHook.UI.Helpers;
 using System;
 using System.Collections.Generic;
@@ -41,6 +43,7 @@ namespace NetHook.UI
             {
                 MessageBox.Show(y, z);
             };
+            ServerStatus = ServerLogStatus.Run;
         }
 
         private void toolStrip1_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
@@ -72,7 +75,7 @@ namespace NetHook.UI
             CurrentProcess = process;
             toolStripLabel_OpenProcess.Text = $"{process.Id} {process.ProcessName}";
             _remoteInjector = new RemoteInjector();
-            _remoteInjector.InjectSocketerver(CurrentProcess, _server.Port);
+            _remoteInjector.InjectSocketerver(CurrentProcess, _server.Address);
         }
 
         private void CloseProcess()
@@ -94,7 +97,7 @@ namespace NetHook.UI
 
         private void toolStripButton_Play_Click(object sender, EventArgs e)
         {
-            ServerStatus = ServerLogStatus.OnlyRun;
+            ServerStatus = ServerLogStatus.Run;
         }
 
         private void dataGridView_Threads_DoubleClick(object sender, EventArgs e)
@@ -144,30 +147,38 @@ namespace NetHook.UI
 
         private void UpdateThreads(ThreadInfo[] threads)
         {
-            this.Invoke((Action)(() =>
+            if (ServerStatus == ServerLogStatus.Pause)
+                return;
+            else if (ServerStatus == ServerLogStatus.OnlyRun)
+                ServerStatus = ServerLogStatus.Pause;
+
+            List<DataGridViewRow> rows = new List<DataGridViewRow>();
+            _rowsThread.Clear();
+
+            foreach (var thread in threads)
+            {
+                if (thread.Frames.Length > 0)
+                {
+                    TimeSpan timeSpan = thread.Frames.Select(x => x.Elapsed).Aggregate((x, y) => x.Add(y));
+
+                    DataGridViewRow row = new DataGridViewRow();
+                    row.Cells.Add(new DataGridViewTextBoxCell() { Value = thread.ThreadID });
+                    row.Cells.Add(new DataGridViewTextBoxCell() { Value = thread.ThreadState });
+                    row.Cells.Add(new DataGridViewTextBoxCell() { Value = thread.Frames.SelectRecursive(x => x.ChildFrames).Count() });
+                    row.Cells.Add(new DataGridViewTextBoxCell() { Value = thread.Frames.FirstOrDefault().DateCreate });
+                    row.Cells.Add(new DataGridViewTextBoxCell() { Value = thread.Frames.FirstOrDefault().DateCreate.Add(timeSpan) });
+                    row.Cells.Add(new DataGridViewTextBoxCell() { Value = timeSpan });
+
+                    rows.Add(row);
+                    _rowsThread[row] = thread;
+                }
+            };
+
+            this.Invoke(() =>
             {
                 this.dataGridView_Threads.Rows.Clear();
-                _rowsThread.Clear();
-
-                foreach (var thread in threads)
-                {
-                    if (thread.Frames.Length > 0)
-                    {
-                        TimeSpan timeSpan = thread.Frames.Select(x => x.Elapsed).Aggregate((x, y) => x.Add(y));
-
-                        DataGridViewRow row = new DataGridViewRow();
-                        row.Cells.Add(new DataGridViewTextBoxCell() { Value = thread.ThreadID });
-                        row.Cells.Add(new DataGridViewTextBoxCell() { Value = thread.ThreadState });
-                        row.Cells.Add(new DataGridViewTextBoxCell() { Value = thread.Frames.SelectRecursive(x => x.ChildFrames).Count() });
-                        row.Cells.Add(new DataGridViewTextBoxCell() { Value = thread.Frames.FirstOrDefault().DateCreate });
-                        row.Cells.Add(new DataGridViewTextBoxCell() { Value = thread.Frames.FirstOrDefault().DateCreate.Add(timeSpan) });
-                        row.Cells.Add(new DataGridViewTextBoxCell() { Value = timeSpan });
-
-                        this.dataGridView_Threads.Rows.Add(row);
-                        _rowsThread[row] = thread;
-                    }
-                }
-            }));
+                this.dataGridView_Threads.Rows.AddRange(rows.ToArray());
+            });
         }
 
         private void toolStripButton1_Click(object sender, EventArgs e)
@@ -191,7 +202,7 @@ namespace NetHook.UI
 
                 if (form?.IsHandleCreated ?? false)
                 {
-                    form.Invoke(new Action(() => form.Activate()));
+                    form.Invoke(() => form.Activate());
                     return;
                 }
             }

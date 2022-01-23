@@ -24,9 +24,26 @@ namespace NetHook.UI
             dataGridView_ProcessList.Columns.Add("PID", "PID");
             dataGridView_ProcessList.Columns.Add("Process Name", "Process Name");
 
-            dataGridView_ProcessList.Rows.AddRange(Process.GetProcesses()
+            UpdateRows();
+            ResizeFormHelper.Instance.AddResizeControl(dataGridView_ProcessList);
+            ResizeFormHelper.Instance.AddFixControl(button_OK);
+            ResizeFormHelper.Instance.AddFixControl(button_cancell);
+        }
+
+        private void UpdateRows()
+        {
+            DataGridViewRow[] rows = Process.GetProcesses()
                 .Select(x => (DataGridViewRow)new ProcessListViweInfo(x))
-                .ToArray());
+                .ToArray();
+
+            this.Invoke(() => UpdateRows(rows));
+        }
+
+        private void UpdateRows(DataGridViewRow[] rows)
+        {
+            dataGridView_ProcessList.Rows.Clear();
+
+            dataGridView_ProcessList.Rows.AddRange(rows);
 
             dataGridView_ProcessList.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
             dataGridView_ProcessList.AllowUserToResizeRows = false;
@@ -44,10 +61,14 @@ namespace NetHook.UI
             this.ActiveControl = toolStripTextBox_searchValue.TextBox;
             Load += (o, e) => dataGridView_ProcessList.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
 
-            ResizeFormHelper.Instance.AddResizeControl(dataGridView_ProcessList);
-            ResizeFormHelper.Instance.AddFixControl(button_OK);
-            ResizeFormHelper.Instance.AddFixControl(button_cancell);
+            pictureBox_Load_Processing.Visible = false;
+            toolStripTextBox_searchValue_Click(null, null);
+        }
 
+        private void toolStripButton_Update_Click(object sender, EventArgs e)
+        {
+            pictureBox_Load_Processing.Visible = true;
+            UpdateRows();
         }
 
         private Process _selectedProcess;
@@ -90,7 +111,7 @@ namespace NetHook.UI
                 {
                     if (!__init_DisplayInfo)
                     {
-                        _DisplayInfo = $"{Process.Id.ToString().PadRight(7)} {Process.ProcessName}";
+                        _DisplayInfo = $"{Process.Id,-7} {Process.ProcessName}";
                         __init_DisplayInfo = true;
                     }
                     return _DisplayInfo;
@@ -137,5 +158,6 @@ namespace NetHook.UI
         {
             ResizeFormHelper.Instance.ResizeСhangesForm(this);
         }
+
     }
 }

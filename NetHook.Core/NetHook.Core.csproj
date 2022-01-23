@@ -90,6 +90,7 @@
     <Compile Include="Handlers\Trace\TraceFrameInfo.cs" />
     <Compile Include="Helpers\DisposeAction.cs" />
     <Compile Include="Inject\AssemblyModel\AssembleModelInfo.cs" />
+    <Compile Include="Inject\AssemblyModel\ThreadInfo.cs" />
     <Compile Include="Inject\DomainEntryPoint.cs" />
     <Compile Include="Inject\AssemblyModel\DomainModelInfo.cs" />
     <Compile Include="Inject\ICorRuntimeHost.cs" />

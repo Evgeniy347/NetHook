@@ -9,6 +9,6 @@ namespace NetHook.UI.Enums
     {
         Pause,
         OnlyRun,
-        OnleRun,
+        Run,
     }
 }

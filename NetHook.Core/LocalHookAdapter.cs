@@ -39,7 +39,6 @@ namespace NetHook.Core
             foreach (Type type in assembly.GetTypes().Where(x => typeof(LocalHookRuntimeInstance).IsAssignableFrom(x)))
             {
                 LocalHookRuntimeInstance provider = (LocalHookRuntimeInstance)Activator.CreateInstance(type, new object[] { this });
-
                 CreateHook(provider.Method, provider.MethodHook);
             }
 
@@ -75,49 +74,70 @@ namespace NetHook.Core
 
         internal void CreateHook(MethodInfo method, MethodInfo methodHook)
         {
-            CheckMethod(method);
-            CheckMethod(methodHook);
+            try
+            {
+                CheckMethod(method);
+                CheckMethod(methodHook);
 
-            RuntimeHelpers.PrepareMethod(method.MethodHandle);
-            RuntimeHelpers.PrepareMethod(methodHook.MethodHandle);
+                RuntimeHelpers.PrepareMethod(method.MethodHandle);
+                RuntimeHelpers.PrepareMethod(methodHook.MethodHandle);
 
-            var methodAddress = method.MethodHandle.GetFunctionPointer();
-            var methodAddressHook = methodHook.MethodHandle.GetFunctionPointer();
-            Console.WriteLine($"methodAddress     {methodAddress.ToHex()} {Memory.GetAddressBody(methodAddress).ToHex()}");
-            Console.WriteLine($"methodAddressHook {methodAddressHook.ToHex()} {Memory.GetAddressBody(methodAddressHook).ToHex()}");
+                var methodAddress = method.MethodHandle.GetFunctionPointer();
+                var methodAddressHook = methodHook.MethodHandle.GetFunctionPointer();
+                Console.WriteLine($"methodAddress     {methodAddress.ToHex()} {Memory.GetAddressBody(methodAddress).ToHex()}");
+                Console.WriteLine($"methodAddressHook {methodAddressHook.ToHex()} {Memory.GetAddressBody(methodAddressHook).ToHex()}");
 
-            var newmem = Alloc(methodAddress);
+                var newmem = Alloc(methodAddress);
 
-            var methodBody = GetMethodBody(methodAddress);
-            var methodHookBody = GetMethodBody(methodAddressHook);
+                var methodBody = GetMethodBody(methodAddress);
+                var methodHookBody = GetMethodBody(methodAddressHook);
 
-            methodBody.AddJMP(methodAddressHook);
+                methodBody.AddJMP(methodAddressHook);
 
-            byte[] origBody = methodBody.GetOriginalBody(methodBody.Size);
+                byte[] origBody = methodBody.GetOriginalBody(methodBody.Size);
 
-            methodHookBody.FindAndReplaceCall(newmem.EndAddress);
+                methodHookBody.FindAndReplaceCall(newmem.EndAddress);
 
-            newmem.Add(origBody);
-            methodBody.CheckNop(origBody.Length);
-            newmem.AddJMP(methodBody.Address.Add(origBody.Length));
+                newmem.Add(origBody);
+                methodBody.CheckNop(origBody.Length);
+                newmem.AddJMP(methodBody.Address.Add(origBody.Length));
 
-            Console.WriteLine("Method Body");
-            methodBody.WriteLog();
-            Console.WriteLine("New Memory");
-            newmem.WriteLog(false);
-            Console.WriteLine("Method Body Hook");
-            methodHookBody.WriteLog();
-
+                Console.WriteLine("Method Body");
+                methodBody.WriteLog();
+                Console.WriteLine("New Memory");
+                newmem.WriteLog(false);
+                Console.WriteLine("Method Body Hook");
+                methodHookBody.WriteLog();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Hook error method '{method.Name}' type '{method.DeclaringType.AssemblyQualifiedName}'", ex);
+            }
         }
 
         public static bool CheckMethod(MethodInfo method, bool throwNewEx = true)
         {
             try
             {
+                if (method.IsGenericMethod)
+                    throw new NotImplementedException($"IsGenericMethod");
+
+                if (method.IsGenericMethodDefinition)
+                    throw new NotImplementedException($"IsGenericMethodDefinition");
+
+                if (method.DeclaringType.IsGenericType)
+                    throw new NotImplementedException($"IsGenericType");
+
+                if (method.DeclaringType.IsGenericTypeDefinition)
+                    throw new NotImplementedException($"IsGenericTypeDefinition");
+
+                if (method.Name.Contains('<') || method.Name.Contains('<') || method.Name.Contains('.') || method.Name.Contains('\''))
+                    throw new NotImplementedException($"Запрещеные символы в названии метода '{method.Name}'");
+
                 if (method.IsConstructor)
                     throw new NotImplementedException($"Запрещено использовать конструкторы");
 
-                if (!method.ReturnType.IsClass)
+                if (!method.ReturnType.IsClass && method.ReturnType != typeof(void))
                     throw new NotImplementedException($"Запрещено использовать структуры в качестве возвращаемого значения. ReturnType '{method.ReturnType.FullName}'");
 
                 foreach (var parametr in method.GetParameters())
@@ -194,7 +214,7 @@ namespace NetHook.Core
         {
             var result = type.GetMethods(BindingFlags.Instance | BindingFlags.Static |
                     BindingFlags.Public | BindingFlags.NonPublic)
-                   .Where(x => x.DeclaringType == type && !x.IsConstructor)
+                   .Where(x => x.DeclaringType == type && CheckMethod(x, false))
                    .ToArray();
 
             return result;

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Windows.Forms;
@@ -18,6 +19,8 @@ namespace NetHook.UI
             : base(text)
         { }
 
+        public List<TreeNodeHelper> CasheNodes { get; } = new List<TreeNodeHelper>();
+
         public List<TreeNodeHelper> HideNodes { get; } = new List<TreeNodeHelper>();
 
         private List<TreeNodeHelper> _HideParentNodes;
@@ -26,7 +29,11 @@ namespace NetHook.UI
         private TreeNodeCollection _ParentNodes;
         public TreeNodeCollection ParentNodes => _ParentNodes ?? (_ParentNodes = this.Parent.Nodes);
 
-        public TreeNodeHelper[] AllNodes => HideNodes.Union(this.Nodes.Cast<TreeNodeHelper>()).ToArray();
+        public TreeNodeHelper[] AllNodes => HideNodes
+            .Union(this.Nodes.Cast<TreeNodeHelper>())
+            .Union(CasheNodes)
+            .Where(x => x.Name != "Entity")
+            .ToArray();
 
         public TreeNodeHelper Parent => (TreeNodeHelper)base.Parent;
 
@@ -35,7 +42,7 @@ namespace NetHook.UI
         {
             get => _Visible; set
             {
-                if (_Visible == value)
+                if (_Visible == value || Text == "Entity")
                     return;
 
                 if (value)
@@ -49,20 +56,54 @@ namespace NetHook.UI
 
         public void Hide()
         {
+            if (Text == "Entity")
+                return;
+
             HideParentNodes.Add(this);
             ParentNodes.Remove(this);
         }
 
         public void Show()
         {
-            HideParentNodes.Remove(this);
+            if (Text == "Entity")
+                return;
 
+            HideParentNodes.Remove(this);
             ParentNodes.Add(this);
         }
 
         public void AddRange(TreeNodeHelper[] nodes)
         {
-            Nodes.AddRange(nodes);
+            if (nodes.Length == 0)
+                return;
+
+            if (this.IsExpanded)
+            {
+                Nodes.AddRange(nodes);
+            }
+            else
+            {
+                CasheNodes.AddRange(nodes);
+                foreach (TreeNodeHelper node in nodes)
+                {
+                    node._HideParentNodes = HideNodes;
+                    node._ParentNodes = Nodes;
+                }
+
+                Nodes.Add(new TreeNodeHelper("Entity"));
+            }
+        }
+
+        internal void BeforeCollapse()
+        {
+            Nodes.Clear();
+            Nodes.Add(new TreeNodeHelper("Entity"));
+        }
+
+        internal void AfterExpand()
+        {
+            Nodes.Clear();
+            Nodes.AddRange(CasheNodes.ToArray());
         }
     }
 }

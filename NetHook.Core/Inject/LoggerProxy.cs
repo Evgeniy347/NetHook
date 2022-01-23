@@ -1,5 +1,6 @@
 ﻿using NetHook.Cores.Extensions;
 using NetHook.Cores.Handlers.Trace;
+using NetHook.Cores.Inject.AssemblyModel;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -126,18 +127,4 @@ namespace NetHook.Cores.Inject
         }
     }
 
-    [Serializable]
-    [DataContract]
-    public class ThreadInfo
-    {
-        [DataMember]
-        public TraceFrameInfo[] Frames { get; set; }
-
-        [DataMember]
-        public int ThreadID { get; set; }
-
-
-        [DataMember]
-        public ThreadState ThreadState { get; set; }
-    }
 }
