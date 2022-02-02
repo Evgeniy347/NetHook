@@ -117,17 +117,16 @@ namespace NetHook.Core
             _original = null;
         }
 
-        public void WriteLog(bool whithOriginal = true)
+        public string WriteLog(bool whithOriginal = true)
         {
             var original = whithOriginal ? _memory.Read(Address, Size) : new byte[0];
-
-            //WriteLines(original, ToArray(), Address);
+            return WriteLines(original, ToArray(), Address);
         }
 
-        public static void WriteLines(byte[] orig, byte[] newValue, IntPtr address)
+        private static string WriteLines(byte[] orig, byte[] newValue, IntPtr address)
         {
             string line = GetDisassemble(orig, newValue, address);
-            Console.WriteLine(line);
+            return line;
         }
 
         public static string GetDisassemble(byte[] orig, byte[] newValue, IntPtr address)
@@ -199,7 +198,7 @@ namespace NetHook.Core
 
         public void Dispose()
         {
-            UnInstall(); 
+            UnInstall();
         }
     }
 }

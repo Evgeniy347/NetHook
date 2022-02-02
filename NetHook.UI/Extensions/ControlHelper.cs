@@ -45,15 +45,19 @@ namespace NetHook.UI.Extensions
             if (control.Disposing)
                 return;
 
-            if (control.InvokeRequired)
-                control.Invoke(new Action(() =>
-                {
-                    if (control.Disposing)
-                        return;
+            try
+            {
+                if (control.InvokeRequired)
+                    control.Invoke(new Action(() =>
+                    {
+                        if (control.Disposing)
+                            return;
+                        action();
+                    }));
+                else
                     action();
-                }));
-            else
-                action();
+            }
+            catch (ObjectDisposedException) { }
         }
     }
 }

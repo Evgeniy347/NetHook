@@ -103,7 +103,6 @@ namespace NetHook.UI
             this.Controls.Add(this.treeView_TraceLog);
             this.Name = "TraceLogForm";
             this.Text = "TraceLogForm";
-            this.SizeChanged += new System.EventHandler(this.TraceLogForm_SizeChanged);
             this.toolStrip1.ResumeLayout(false);
             this.toolStrip1.PerformLayout();
             this.ResumeLayout(false);

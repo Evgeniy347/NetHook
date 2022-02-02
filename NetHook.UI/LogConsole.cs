@@ -20,14 +20,5 @@ namespace NetHook.UI
             this.FormClosing += (o, e) => _consoleStream.RemoveTextBox();
         }
 
-        private void LogConsole_Load(object sender, EventArgs e)
-        {
-
-        }
-
-        private void LogConsole_SizeChanged(object sender, EventArgs e)
-        {
-            ResizeFormHelper.Instance.ResizeСhangesForm(this);
-        }
     }
 }

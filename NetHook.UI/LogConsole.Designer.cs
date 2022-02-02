@@ -50,8 +50,6 @@ namespace NetHook.UI
             this.Controls.Add(this.richTextBox_logConsole);
             this.Name = "LogConsole";
             this.Text = "LogConsole";
-            this.Load += new System.EventHandler(this.LogConsole_Load);
-            this.SizeChanged += new System.EventHandler(this.LogConsole_SizeChanged);
             this.ResumeLayout(false);
 
         }

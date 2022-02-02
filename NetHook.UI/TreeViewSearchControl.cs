@@ -10,31 +10,29 @@ namespace NetHook.UI
 {
     public class TreeViewSearchHelper
     {
-        public TreeView TreeView { get; }
+        public TreeNodeRootHelper TreeView { get; }
 
-        public List<TreeNodeHelper> HideRootNodes { get; } = new List<TreeNodeHelper>();
+        public ToolStripTextBox SearchTextBox { get; }
 
-        public TreeViewSearchHelper(TreeView treeView)
+        public TreeViewSearchHelper(TreeNodeRootHelper treeView, ToolStripTextBox toolStripTextBox_searchValue)
         {
             TreeView = treeView;
+            SearchTextBox = toolStripTextBox_searchValue;
+
+            toolStripTextBox_searchValue.TextChanged += (x, y) => Search(toolStripTextBox_searchValue.Text);
         }
 
         public void Search(string value)
         {
 
-            TreeView.BeginUpdate();
-            using (TreeView.CreateUpdateContext())
+            TreeView.TreeView.BeginUpdate();
+            using (TreeView.TreeView.CreateUpdateContext())
             {
-                TreeView.SelectedNode = null;
-
-                HideRootNodes.AddRange(TreeView.Nodes.Cast<TreeNodeHelper>());
-                TreeView.Nodes.Clear();
-                HideRootNodes.ForEach(x => x.Visible = false);
-
-                CheckVisibleNodes(HideRootNodes, value);
+                TreeView.TreeView.SelectedNode = null;
+                CheckVisibleNodes(TreeView.AllNodes, value);
             }
 
-            TreeView.EndUpdate();
+            TreeView.TreeView.EndUpdate();
         }
 
         private bool CheckVisibleNodes(IEnumerable<TreeNodeHelper> nodes, string value)
@@ -43,6 +41,7 @@ namespace NetHook.UI
 
             foreach (TreeNodeHelper node in nodes.ToArray())
             {
+                node.Collapse();
                 node.Visible = CheckVisibleNodes(node.AllNodes, value) || node.Text.ContainsSearch(value);
 
                 if (node.Visible)

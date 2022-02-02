@@ -1,9 +1,9 @@
-﻿using NetHook.Cores.Socket;
-using SocketLibrary;
+﻿using NetHook.Cores.NetSocket;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
@@ -12,25 +12,45 @@ namespace NetHook.Cores.Extensions
 {
     public static class SocketExtensions
     {
-        public static MessageSocket AcceptMessage(this ConnectedSocket connectedSocket, string method = null)
+
+        public static void SetDefaultProperty(this Socket socket)
+        {
+            socket.ReceiveTimeout = int.MaxValue;
+            socket.ReceiveBufferSize = int.MaxValue;
+            socket.SendBufferSize = int.MaxValue;
+        }
+
+        public static string GetKey(this Socket socket)
+        {
+            var epl = socket.LocalEndPoint as IPEndPoint;
+            var epr = socket.RemoteEndPoint as IPEndPoint;
+
+            return $"({epl.Port}/{epr.Port})";
+        }
+
+        public static MessageSocket AcceptMessage(this Socket socket, string method = null)
         {
             Stopwatch stopwatch = Stopwatch.StartNew();
-            string message = connectedSocket.FullReceive();
+            string message = socket.FullReceive();
 
-            if (string.IsNullOrEmpty(message))
-                return new MessageSocket();
-            MessageSocket result = new MessageSocket(message);
+            MessageSocket result = new MessageSocket(socket, message);
 
             if (method != null && result.MethodName != method)
                 throw new Exception($"Check Method '{method}' {Environment.NewLine}{message}");
 
-            Console.WriteLine($"AcceptMessage:{result.MethodName} {result.Size} {connectedSocket.UnderlyingSocket.LocalEndPoint} SocketElapsed {stopwatch.Elapsed}");
+            Console.WriteLine($"Port:{socket.GetKey()} AcceptMessage:{result.MethodName} TypeMessage:{result.TypeMessage} ID:{result.ID} Size:{result.Size} SocketElapsed {stopwatch.Elapsed}");
+
+            if (result.ID <= 0)
+            {
+                Console.WriteLine(message);
+                throw new ArgumentException(nameof(result.ID));
+            }
             return result;
         }
 
-        public static TMessage AcceptMessage<TMessage>(this ConnectedSocket connectedSocket)
+        public static TMessage AcceptMessage<TMessage>(this Socket socket)
         {
-            string messageJson = connectedSocket.FullReceive();
+            string messageJson = socket.FullReceive();
 
             if (string.IsNullOrEmpty(messageJson))
                 return default;
@@ -46,51 +66,24 @@ namespace NetHook.Cores.Extensions
             }
         }
 
-        public static void SendMessage<TMessage>(this ConnectedSocket connectedSocket, string methodName, TMessage message)
+
+
+        public static void SendMessage(this Socket socket, string method, string body, int id, TypeMessage type)
         {
             Stopwatch stopwatch = Stopwatch.StartNew();
-            MessageSocket messageSocket = new MessageSocket()
-            {
-                MethodName = methodName,
-                Body = message.SerializerJSON()
-            };
+            MessageSocket message = new MessageSocket(socket, method, id, type);
 
-            connectedSocket.SendMessage(messageSocket);
+            message.SetObject(body);
+            socket.SendMessage(message);
         }
 
-        public static void SendMessage(this ConnectedSocket connectedSocket, MessageSocket message)
+        public static bool IsSocketConnected(this Socket socket)
         {
-            Stopwatch stopwatch = Stopwatch.StartNew();
-
-            byte[] rawData = Encoding.UTF8.GetBytes(message.RawData);
-            byte[] bytesSize = BitConverter.GetBytes(rawData.Length);
-
-            connectedSocket.UnderlyingSocket.Send(bytesSize);
-            connectedSocket.UnderlyingSocket.Send(rawData);
-
-            Console.WriteLine($"SendMessage:{message.MethodName} {message.Size} {connectedSocket.UnderlyingSocket.LocalEndPoint} SocketElapsed {stopwatch.Elapsed}");
-        }
-
-        public static void SendMessage(this ConnectedSocket connectedSocket, string method, string body)
-        {
-            Stopwatch stopwatch = Stopwatch.StartNew();
-            MessageSocket message = new MessageSocket()
-            {
-                MethodName = method,
-                Body = body
-            };
-
-            connectedSocket.SendMessage(message);
-        }
-
-        public static bool IsSocketConnected(this ConnectedSocket connectedSocket)
-        {
-            lock (connectedSocket)
+            lock (socket)
             {
                 try
                 {
-                    var soket = connectedSocket.UnderlyingSocket;
-                    return !((soket.Poll(1000, SelectMode.SelectRead) && (soket.Available == 0)) || !soket.Connected);
+                    return !((socket.Poll(1000, SelectMode.SelectRead) && (socket.Available == 0)) || !socket.Connected);
                 }
                 catch
                 {
@@ -100,32 +93,66 @@ namespace NetHook.Cores.Extensions
         }
 
 
-        public static string FullReceive(this ConnectedSocket connectedSocket)
+        public static string FullReceive(this Socket socket)
         {
-            byte[] raw = connectedSocket.ReceiveAll();
+            byte[] raw = socket.ReceiveAll();
 
             string @string = Encoding.UTF8.GetString(raw);
             char[] trimChars = new char[1];
             return @string.TrimEnd(trimChars);
         }
 
-        public static byte[] ReceiveAll(this ConnectedSocket connectedSocket)
+        public static void SendMessage(this Socket socket, MessageSocket message)
         {
-            while (connectedSocket.UnderlyingSocket.Available < 4)
-                Thread.Sleep(50);
+            Stopwatch stopwatch = Stopwatch.StartNew();
 
-            byte[] sizeBytes = new byte[4];
-            var byteCounter = connectedSocket.UnderlyingSocket.Receive(sizeBytes, sizeBytes.Length, SocketFlags.None);
+            byte[] rawData = Encoding.UTF8.GetBytes(message.RawData);
+            byte[] bytesSize = BitConverter.GetBytes(rawData.Length);
 
-            int size = BitConverter.ToInt32(sizeBytes, 0);
+            try
+            {
+                if (message.ID <= 0)
+                    throw new ArgumentException(nameof(message.ID));
 
-            while (connectedSocket.UnderlyingSocket.Available != size)
-                Thread.Sleep(50);
+                lock (socket)
+                {
+                    socket.Send(bytesSize);
+                    socket.Send(rawData);
+                }
+            }
+            finally
+            {
+                Console.WriteLine($"Port:{socket.GetKey()} SendMessage:{message.MethodName} TypeMessage:{message.TypeMessage} ID:{message.ID} Size:{message.Size} SocketElapsed {stopwatch.Elapsed}");
+            }
+        }
 
-            var result = new byte[size];
-            connectedSocket.UnderlyingSocket.Receive(result, result.Length, SocketFlags.None);
+        public static byte[] ReceiveAll(this Socket socket)
+        {
+            lock (socket)
+            {
+                while (socket.Available < 4)
+                    Thread.Sleep(50);
 
-            return result;
+                byte[] sizeBytes = new byte[4];
+                var byteCounter = socket.Receive(sizeBytes, sizeBytes.Length, SocketFlags.None);
+
+                int size = BitConverter.ToInt32(sizeBytes, 0);
+
+                while (socket.Available != size)
+                    Thread.Sleep(50);
+
+                var result = new byte[size];
+                socket.Receive(result, result.Length, SocketFlags.None);
+
+                return result;
+            }
+        }
+
+
+        public static void DisposeSocket(this Socket socket)
+        {
+            socket.Shutdown(SocketShutdown.Both);
+            socket.Dispose();
         }
     }
 }

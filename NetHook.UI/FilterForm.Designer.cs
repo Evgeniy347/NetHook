@@ -48,9 +48,6 @@ namespace NetHook.UI
             this.treeView_assemblies.Name = "treeView_assemblies";
             this.treeView_assemblies.Size = new System.Drawing.Size(776, 381);
             this.treeView_assemblies.TabIndex = 0;
-            this.treeView_assemblies.AfterCheck += new System.Windows.Forms.TreeViewEventHandler(this.treeView_assemblies_AfterCheck);
-            this.treeView_assemblies.BeforeCollapse += new System.Windows.Forms.TreeViewCancelEventHandler(this.treeView_assemblies_BeforeCollapse);
-            this.treeView_assemblies.AfterExpand += new System.Windows.Forms.TreeViewEventHandler(this.treeView_assemblies_AfterExpand);
             // 
             // button_Cancel
             // 
@@ -110,7 +107,6 @@ namespace NetHook.UI
             this.toolStripTextBox_searchValue.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.toolStripTextBox_searchValue.Name = "toolStripTextBox_searchValue";
             this.toolStripTextBox_searchValue.Size = new System.Drawing.Size(300, 25);
-            this.toolStripTextBox_searchValue.TextChanged += new System.EventHandler(this.toolStripTextBox_searchValue_TextChanged);
             // 
             // pictureBox_Load_Processing
             // 
@@ -135,7 +131,6 @@ namespace NetHook.UI
             this.Controls.Add(this.treeView_assemblies);
             this.Name = "FilterForm";
             this.Text = "FilterForm";
-            this.SizeChanged += new System.EventHandler(this.FilterForm_SizeChanged);
             this.toolStrip1.ResumeLayout(false);
             this.toolStrip1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox_Load_Processing)).EndInit();

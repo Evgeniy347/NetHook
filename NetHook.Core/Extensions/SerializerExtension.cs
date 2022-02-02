@@ -9,11 +9,12 @@ namespace NetHook.Cores.Extensions
 {
     public static class SerializerExtension
     {
-        public static string SerializerJSON<TType>(this TType obj)
+
+        public static string SerializerJSON(this object obj)
         {
             using (MemoryStream memoryStream = new MemoryStream())
             {
-                DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(TType));
+                DataContractJsonSerializer serializer = new DataContractJsonSerializer(obj.GetType());
                 serializer.WriteObject(memoryStream, obj);
                 string json = Encoding.UTF8.GetString(memoryStream.ToArray());
 

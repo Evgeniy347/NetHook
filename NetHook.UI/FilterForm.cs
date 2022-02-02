@@ -1,6 +1,7 @@
 ﻿using NetHook.Cores.Extensions;
+using NetHook.Cores.Helpers;
 using NetHook.Cores.Inject;
-using NetHook.Cores.Socket;
+using NetHook.Cores.NetSocket;
 using NetHook.UI.Extensions;
 using System;
 using System.Collections.Generic;
@@ -25,12 +26,14 @@ namespace NetHook.UI
 
         public readonly TreeViewSearchHelper _treeViewSearchHelper;
 
+        public readonly TreeNodeRootHelper _treeViewRootNode;
+
         public FilterForm(LoggerServer loggerServer)
         {
             InitializeComponent();
             _server = loggerServer;
-            _treeViewSearchHelper = new TreeViewSearchHelper(treeView_assemblies);
-
+            _treeViewRootNode = new TreeNodeRootHelper(treeView_assemblies);
+            _treeViewSearchHelper = new TreeViewSearchHelper(_treeViewRootNode, toolStripTextBox_searchValue);
             UpdateTree();
             ResizeFormHelper.Instance.AddResizeControl(treeView_assemblies);
             ResizeFormHelper.Instance.AddFixControl(button_Ok);
@@ -38,18 +41,17 @@ namespace NetHook.UI
             pictureBox_Load_Processing.Visible = true;
         }
 
-        private void InitTreeView()
+        private void InitTreeView(AssembleModelInfo[] assemblers)
         {
-            AssembleModelInfo[] assemblers = _server.GetAssembles();
-
             treeView_assemblies.BeginUpdate();
             treeView_assemblies.Nodes.Clear();
             _nodes.Clear();
-            _treeViewSearchHelper.HideRootNodes.Clear();
 
             using (treeView_assemblies.CreateUpdateContext())
-                treeView_assemblies.Nodes.AddRange(assemblers.Select(GetNode).ToArray());
-
+            {
+                foreach (var assemble in assemblers)
+                    AddNode(assemble);
+            }
             treeView_assemblies.EndUpdate();
 
             pictureBox_Load_Processing.Visible = false;
@@ -61,78 +63,57 @@ namespace NetHook.UI
             UpdateTree();
         }
 
-        private void UpdateTree(bool newRequest = true)
+        private void UpdateTree()
         {
             pictureBox_Load_Processing.Visible = true;
 
-            Thread thread = new Thread(() =>
+            ThreadHelper.RunLogic(() =>
             {
-                if (newRequest)
-                {
-                    int countUpdateAssembies = 0;
-
-                    _server.ChangeAssemble = null;
-
-                    _server.ChangeAssemble += (x) =>
-                    {
-                        countUpdateAssembies++;
-                        if (countUpdateAssembies >= _server.CountConnection)
-                        {
-                            this.Invoke(() => InitTreeView());
-                            _server.ChangeAssemble = null;
-                        }
-                    };
-
-                    _server.RunThreadsGetAssembly();
-                }
-                else
-                {
-                    this.Invoke(() => InitTreeView());
-                }
-            });
-            thread.Name = "UpdateTree";
-            thread.SetApartmentState(ApartmentState.STA);
-            thread.Start();
+                AssembleModelInfo[] assemblers = _server.GetAssembles();
+                this.Invoke(() => InitTreeView(assemblers));
+            }, "UpdateTree");
         }
 
-        private TreeNodeHelper GetNode(AssembleModelInfo assembleModel)
+        private TreeNodeHelper AddNode(AssembleModelInfo assembleModel)
         {
-            TreeNodeHelper node = new TreeNodeHelper(_treeViewSearchHelper.HideRootNodes, treeView_assemblies.Nodes, assembleModel.Name);
+            TreeNodeHelper node = _treeViewRootNode.CreateNode(assembleModel.Name);
+
             _nodes[node] = assembleModel;
 
-            node.AddRange(assembleModel.Types.GroupBy(x => x.Namespace)
-                .Select(x => GetNode(x.Key, x.ToArray()))
-                .ToArray());
+            foreach (var types in assembleModel.Types.GroupBy(x => x.Namespace))
+                AddNode(node, types.Key, types.ToArray());
 
             return node;
         }
 
-        private TreeNodeHelper GetNode(string nameSpace, TypeModelInfo[] types)
+        private TreeNodeHelper AddNode(TreeNodeHelper parent, string nameSpace, TypeModelInfo[] types)
         {
-            TreeNodeHelper node = new TreeNodeHelper(nameSpace);
+            TreeNodeHelper node = parent.CreateNode(nameSpace);
             _nodes[node] = nameSpace;
 
-            node.AddRange(types.Select(x => GetNode(x)).ToArray());
+            foreach (var type in types)
+                AddNode(node, type);
 
             return node;
         }
 
-        private TreeNodeHelper GetNode(TypeModelInfo typeModel)
+        private TreeNodeHelper AddNode(TreeNodeHelper parent, TypeModelInfo typeModel)
         {
-            TreeNodeHelper node = new TreeNodeHelper(typeModel.Name);
+            TreeNodeHelper node = parent.CreateNode(typeModel.Name);
+
             _nodes[node] = typeModel;
 
-            node.AddRange(typeModel.Methods.Select(x => GetNode(x, typeModel)).ToArray());
+            foreach (var method in typeModel.Methods)
+                AddNode(node, method, typeModel);
 
             return node;
         }
 
-        private TreeNodeHelper GetNode(MethodModelInfo methodlInfo, TypeModelInfo typeModel)
+        private TreeNodeHelper AddNode(TreeNodeHelper parent, MethodModelInfo methodlInfo, TypeModelInfo typeModel)
         {
-            TreeNodeHelper node = new TreeNodeHelper(methodlInfo.Signature);
+            TreeNodeHelper node = parent.CreateNode(methodlInfo.Signature);
             methodlInfo.TypeName = typeModel.FullName;
             _nodes[node] = methodlInfo;
-
             return node;
         }
 
@@ -142,7 +123,6 @@ namespace NetHook.UI
             this.Close();
         }
 
-
         private void toolStripTextBox_searchValue_Click(object sender, EventArgs e)
         {
             var value = toolStripTextBox_searchValue.Text;
@@ -150,9 +130,6 @@ namespace NetHook.UI
         }
 
         private void toolStripOnSearch_Click(object sender, EventArgs e) =>
-            toolStripTextBox_searchValue_Click(sender, e);
-
-        private void toolStripTextBox_searchValue_TextChanged(object sender, EventArgs e) =>
             toolStripTextBox_searchValue_Click(sender, e);
 
         private void button_Ok_Click(object sender, EventArgs e)
@@ -173,61 +150,5 @@ namespace NetHook.UI
             this.Close();
         }
 
-        private void FilterForm_SizeChanged(object sender, EventArgs e)
-        {
-            ResizeFormHelper.Instance.ResizeСhangesForm(this);
-        }
-
-        private void treeView_assemblies_AfterCheck(object sender, TreeViewEventArgs e)
-        {
-            if (_processing_AfterCheck)
-                return;
-
-            _processing_AfterCheck = true;
-            TreeNodeHelper treeNode = e.Node as TreeNodeHelper;
-
-            if (treeNode != null)
-            {
-                if (!treeNode.Checked)
-                    ChangeParent(treeNode, false);
-
-                ChangeChilds(treeNode, treeNode.Checked);
-            }
-
-            _processing_AfterCheck = false;
-        }
-
-        private void ChangeParent(TreeNodeHelper treeNode, bool value)
-        {
-            TreeNodeHelper parent = treeNode.Parent;
-            if (parent != null)
-            {
-                parent.Checked = value;
-                ChangeParent(parent, value);
-            }
-        }
-
-        private void ChangeChilds(TreeNodeHelper treeNode, bool value)
-        {
-            foreach (var node in treeNode.AllNodes)
-            {
-                node.Checked = value;
-                ChangeChilds(node, value);
-            }
-        }
-
-        private void treeView_assemblies_BeforeCollapse(object sender, TreeViewCancelEventArgs e)
-        {
-            TreeNodeHelper node = e.Node as TreeNodeHelper;
-            if (node != null)
-                node.BeforeCollapse();
-        }
-
-        private void treeView_assemblies_AfterExpand(object sender, TreeViewEventArgs e)
-        {
-            TreeNodeHelper node = e.Node as TreeNodeHelper;
-            if (node != null)
-                node.AfterExpand();
-        }
     }
 }

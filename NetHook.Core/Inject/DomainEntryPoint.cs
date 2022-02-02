@@ -4,7 +4,7 @@ using NetHook.Cores.Extensions;
 using NetHook.Cores.Handlers;
 using NetHook.Cores.Handlers.Trace;
 using NetHook.Cores.Inject.AssemblyModel;
-using NetHook.Cores.Socket;
+using NetHook.Cores.NetSocket;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -16,7 +16,9 @@ using System.Runtime.InteropServices;
 using System.Runtime.Remoting;
 using System.Runtime.Remoting.Channels;
 using System.Runtime.Remoting.Channels.Ipc;
+using System.Text;
 using System.Threading;
+using System.Windows.Forms;
 
 namespace NetHook.Cores.Inject
 {
@@ -34,9 +36,11 @@ namespace NetHook.Cores.Inject
 
                     Console.WriteLine(address);
 
-                    using (LoggerClient client = new LoggerClient())
+                    using (DuplexSocketClient duplexSocket = new DuplexSocketClient())
                     {
-                        client.OpenChanel(address);
+                        string[] addressParts = address.Split(':');
+                        duplexSocket.OpenChanel(addressParts[0], int.Parse(addressParts[1]));
+
                         try
                         {
                             object objLock = new object();
@@ -46,50 +50,31 @@ namespace NetHook.Cores.Inject
                                 TraceHandler handler = new TraceHandler();
                                 adapter.RegisterHandler(handler);
 
-                                while (client.Socket.IsSocketConnected())
+                                duplexSocket.HandlerRequest.Add("GetAssemblyInfo", (x) => GetDomainInfo());
+                                duplexSocket.HandlerRequest.Add("SetHook", (x) => SetHook(adapter, x));
+                                duplexSocket.HandlerRequest.Add("UploadThreadInfo", (x) =>
                                 {
-                                    Console.WriteLine("WaitServer");
+                                    ThreadInfo[] package = null;
 
-                                    MessageSocket message = client.AcceptMessage();
-
-                                    Console.WriteLine("operation:" + message.MethodName);
-
-                                    if (message.MethodName == "SendModuleInfo")
+                                    lock (objLock)
                                     {
-                                        DomainModelInfo domainInfo = GetDomainInfo();
-                                        client.SendModuleInfo(domainInfo);
+                                        package = handler
+                                            .GetStackTrace()
+                                            .Select(y => ConvertFrames(y.Key, y.Value))
+                                            .ToArray();
                                     }
-                                    else if (message.MethodName == "SetHook")
-                                    {
-                                        MethodModelInfo[] methods = message.Body.DeserializeJSON<MethodModelInfo[]>();
-                                        AddHookMethods(adapter, methods);
-                                        client.Send($"SetHook Domain '{AppDomain.CurrentDomain.Id}' OK");
-                                    }
-                                    else if (message.MethodName == "UploadThreadInfo")
-                                    {
-                                        ThreadInfo[] package = null;
 
-                                        lock (objLock)
-                                        {
-                                            package = handler
-                                                .GetStackTrace()
-                                                .Select(x => ConvertFrames(x.Key, x.Value))
-                                                .ToArray();
-                                        }
+                                    return package;
+                                });
 
-                                        client.UploadThreadInfo(package);
-                                    }
-                                    else
-                                    {
-                                        Console.WriteLine(message.RawData);
-                                    }
-                                }
+                                while (duplexSocket.IsSocketConnected())
+                                    Thread.Sleep(1000);
                             }
                         }
                         catch (Exception ex)
                         {
                             Console.WriteLine(ex);
-                            client.WriteInjectError(ex.ToString());
+                            duplexSocket.SendMessage("WriteInjectError", ex.ToString());
                         }
                         finally
                         {
@@ -108,6 +93,33 @@ namespace NetHook.Cores.Inject
             thread.Start();
         }
 
+        StringBuilder Log;
+
+        private string SetHook(LocalHookAdapter adapter, MessageSocket message)
+        {
+            Log = new StringBuilder();
+            try
+            {
+                Log.AppendLine($"SetHook Domain '{AppDomain.CurrentDomain.Id}'");
+                MethodModelInfo[] methods = message.GetObject<MethodModelInfo[]>();
+                AddHookMethods(adapter, methods);
+
+                Log.AppendLine("OK");
+            }
+            catch (Exception ex)
+            {
+                Log.AppendLine(ex.ToString());
+            }
+
+            return Log.ToString();
+        }
+
+        private void WriteLine(string message)
+        {
+            Console.WriteLine(message);
+            Log?.AppendLine(message);
+        }
+
         private Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
         {
             Assembly[] asms = AppDomain.CurrentDomain.GetAssemblies();
@@ -121,7 +133,7 @@ namespace NetHook.Cores.Inject
 
         private void AddHookMethods(LocalHookAdapter adapter, MethodModelInfo[] methodsModel)
         {
-            Console.WriteLine("Добавление хуков ");
+            WriteLine("Добавление хуков ");
             adapter.UnInstall();
 
             foreach (var groupMethod in methodsModel.GroupBy(x => x.TypeName))
@@ -130,7 +142,7 @@ namespace NetHook.Cores.Inject
 
                 if (type == null)
                 {
-                    Console.WriteLine($"Не найден тип '{groupMethod.Key}'  {new StackTrace()}");
+                    WriteLine($"Не найден тип '{groupMethod.Key}'  {new StackTrace()}");
                     continue;
                 }
 
@@ -141,40 +153,16 @@ namespace NetHook.Cores.Inject
                     MethodInfo method = methods.FirstOrDefault(x => x.Name == methodModelInfo.Name && GetSignature(x) == methodModelInfo.Signature);
                     if (method == null)
                     {
-                        Console.WriteLine($"Не найден метод '{methodModelInfo.Signature}' в типе '{type.AssemblyQualifiedName}' {new StackTrace()}");
+                        WriteLine($"Не найден метод '{methodModelInfo.Signature}' в типе '{type.AssemblyQualifiedName}' {new StackTrace()}");
                         continue;
                     }
 
-                    Console.WriteLine($"Добавление хука для метода '{methodModelInfo.Signature}' в типе '{type.AssemblyQualifiedName}'");
+                    WriteLine($"Добавление хука для метода '{methodModelInfo.Signature}' в типе '{type.AssemblyQualifiedName}'");
                     adapter.AddHook(method);
                 }
             }
 
-            adapter.Install();
-        }
-
-        public static IDisposable SetContextClient(string inChannelName)
-        {
-            IpcClientChannel channel = new IpcClientChannel(inChannelName, null);
-            ChannelServices.RegisterChannel(channel, true);
-
-            if (RemotingConfiguration.IsWellKnownClientType(typeof(LoggerProxy)) == null)
-                RemotingConfiguration.RegisterWellKnownClientType(typeof(LoggerProxy), inChannelName);
-
-            return new DisposeAction<IpcClientChannel>(channel, (x) =>
-            {
-                Console.WriteLine("DisposeAction Channel");
-                try
-                {
-                    ChannelServices.UnregisterChannel(x);
-                }
-                catch { }
-                try
-                {
-                    RemotingServices.Disconnect(new LoggerProxy());
-                }
-                catch { }
-            });
+            adapter.Install(Log);
         }
 
         public static DomainModelInfo GetDomainInfo()
@@ -185,16 +173,17 @@ namespace NetHook.Cores.Inject
             {
                 Assemblies = AppDomain.CurrentDomain
                 .GetAssemblies()
-                //.Where(x => !x.FullName.StartsWith("NetHook.Core")
-                //&& !x.FullName.StartsWith("EasyHook")
-                //&& !x.FullName.StartsWith("EasyLoad")
-                //&& !x.FullName.StartsWith("System")
-                //&& !x.FullName.StartsWith("Microsoft")
-                //&& !x.FullName.StartsWith("Aspose")
-                //&& !x.FullName.StartsWith("mscorlib"))
+                .Where(x => !x.FullName.StartsWith("NetHook.Core")
+                && !x.FullName.StartsWith("EasyHook")
+                && !x.FullName.StartsWith("EasyLoad")
+                && !x.FullName.StartsWith("System")
+                && !x.FullName.StartsWith("Microsoft")
+                && !x.FullName.StartsWith("Aspose")
+                && !x.FullName.StartsWith("mscorlib"))
                 .Select(x => GetAssembleInfo(x))
                 .Where(x => string.IsNullOrEmpty(x.ErrorText))
                 .ToArray(),
+                CurrentID = AppDomain.CurrentDomain.Id,
             };
 
             stopwatch.Stop();
@@ -208,6 +197,12 @@ namespace NetHook.Cores.Inject
             AssembleModelInfo result = null;
             try
             {
+
+                if (assembly.Location == Process.GetCurrentProcess().MainModule.FileName)
+                {
+                    Console.WriteLine(assembly);
+                }
+
                 result = new AssembleModelInfo()
                 {
                     FullName = assembly.FullName,

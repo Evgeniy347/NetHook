@@ -1,7 +1,7 @@
 ﻿using NetHook.Core;
 using NetHook.Cores.Inject;
 using NetHook.Cores.Inject.AssemblyModel;
-using NetHook.Cores.Socket;
+using NetHook.Cores.NetSocket;
 using NetHook.UI.Enums;
 using NetHook.UI.Extensions;
 using NetHook.UI.Helpers;
@@ -31,7 +31,6 @@ namespace NetHook.UI
             InitializeComponent();
             _server = new LoggerServer();
             _server.StartServer();
-            _server.RunTraceLog();
 
             ResizeFormHelper.Instance.AddResizeControl(dataGridView_Threads);
             LoggerProxy.OnInjectDomainError += (x, y, z) =>
@@ -90,10 +89,6 @@ namespace NetHook.UI
 
         }
 
-        private void MainForm_SizeChanged(object sender, EventArgs e)
-        {
-            ResizeFormHelper.Instance.ResizeСhangesForm(this);
-        }
 
         private void toolStripButton_Play_Click(object sender, EventArgs e)
         {

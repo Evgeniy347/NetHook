@@ -27,6 +27,7 @@ namespace NetHook.UI
 
             controls.Add(control);
             _sourceControlSize[control] = new Size(offsetWidth, offsetHeight);
+            AddHandler(form);
         }
 
         public void AddFixControl(Control control, PositionType positionType = PositionType.All)
@@ -41,9 +42,20 @@ namespace NetHook.UI
 
             controls.Add(control);
             _sourceControlPosition[control] = new Point(offsetX, offsetY);
+            AddHandler(form);
         }
 
-        public void ResizeСhangesForm(Form form)
+        private HashSet<Form> _forms = new HashSet<Form>();
+        private void AddHandler(Form form)
+        {
+            if (_forms.Contains(form))
+                return;
+            _forms.Add(form);
+
+            form.Resize += (x, y) => { ResizeСhangesForm(form); };
+        }
+
+        private void ResizeСhangesForm(Form form)
         {
             if (!_controls.TryGetValue(form, out HashSet<Control> controls))
                 return;

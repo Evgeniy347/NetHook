@@ -16,6 +16,7 @@ namespace NetHook.UI
     {
         private readonly ThreadInfo _threadInfo;
         private readonly TreeViewSearchHelper _treeViewSearchHelper;
+        private readonly TreeNodeRootHelper _treeViewRoot;
 
         public TraceLogForm(ThreadInfo threadInfo)
         {
@@ -25,7 +26,8 @@ namespace NetHook.UI
             ResizeFormHelper.Instance.AddFixControl(button_Cancel);
 
             _threadInfo = threadInfo;
-            _treeViewSearchHelper = new TreeViewSearchHelper(treeView_TraceLog);
+            _treeViewRoot = new TreeNodeRootHelper(treeView_TraceLog);
+            _treeViewSearchHelper = new TreeViewSearchHelper(_treeViewRoot, toolStripTextBox_searchValue);
 
             InitTree();
         }
@@ -33,23 +35,26 @@ namespace NetHook.UI
         private void InitTree()
         {
             if (_threadInfo != null)
-                treeView_TraceLog.Nodes.AddRange(_threadInfo.Frames.Select(x => ConvertRootNode(x)).ToArray());
+                treeView_TraceLog.Nodes.AddRange(_threadInfo.Frames.Select(x => AddRootNode(x)).ToArray());
         }
 
-        private TreeNode ConvertRootNode(TraceFrameInfo traceFrameInfo)
+        private TreeNode AddRootNode(TraceFrameInfo traceFrameInfo)
         {
-            TreeNodeHelper result = new TreeNodeHelper(_treeViewSearchHelper.HideRootNodes, treeView_TraceLog.Nodes, GetText(traceFrameInfo));
+            TreeNodeHelper result = _treeViewRoot.CreateNode(GetText(traceFrameInfo));
 
-            result.AddRange(traceFrameInfo.ChildFrames.Select(ConvertNode).ToArray());
+            foreach (var frame in traceFrameInfo.ChildFrames)
+                AddNode(result, frame);
 
             return result;
         }
 
-        private TreeNodeHelper ConvertNode(TraceFrameInfo traceFrameInfo)
-        {
-            TreeNodeHelper result = new TreeNodeHelper(GetText(traceFrameInfo));
 
-            result.AddRange(traceFrameInfo.ChildFrames.Select(ConvertNode).ToArray());
+        private TreeNodeHelper AddNode(TreeNodeHelper parent, TraceFrameInfo traceFrameInfo)
+        {
+            TreeNodeHelper result = parent.CreateNode(GetText(traceFrameInfo));
+
+            foreach (var frame in traceFrameInfo.ChildFrames)
+                AddNode(result, frame);
 
             return result;
         }
@@ -74,11 +79,6 @@ namespace NetHook.UI
         private void button_Cancel_Click(object sender, EventArgs e)
         {
             Close();
-        }
-
-        private void TraceLogForm_SizeChanged(object sender, EventArgs e)
-        {
-            ResizeFormHelper.Instance.ResizeСhangesForm(this);
         }
     }
 }

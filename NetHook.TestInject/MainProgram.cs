@@ -53,7 +53,7 @@ namespace NetHook.TestInject
                 return TestMethodReqursive(value);
             }
 
-            return value + " " + Thread.CurrentThread.ManagedThreadId + " " + string.Join(" => ", new StackTrace().GetFrames().Select(x => x.GetMethod().Name).Reverse().ToArray());
+            return value + " " + AppDomain.CurrentDomain.Id + " " + Thread.CurrentThread.ManagedThreadId + " " + string.Join(" => ", new StackTrace().GetFrames().Select(x => x.GetMethod().Name).Reverse().ToArray());
         }
     }
 }

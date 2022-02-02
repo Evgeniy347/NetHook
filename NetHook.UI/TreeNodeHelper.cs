@@ -6,98 +6,175 @@ using System.Windows.Forms;
 
 namespace NetHook.UI
 {
-    public class TreeNodeHelper : TreeNode
+    public class TreeNodeRootHelper : TreeNodeHelper
     {
-        public TreeNodeHelper(List<TreeNodeHelper> hidesParent, TreeNodeCollection parentNodes, string text)
-            : base(text)
+        private readonly TreeView _treeView;
+
+        public TreeView TreeView => _treeView;
+
+        public TreeNodeRootHelper(TreeView treeView)
+            : base(null, null)
         {
-            _HideParentNodes = hidesParent;
-            _ParentNodes = parentNodes;
+            _treeView = treeView;
+            treeView.BeforeCollapse += BeforeCollapse;
+            treeView.AfterExpand += AfterExpand;
+            treeView.AfterCheck += AfterCheck;
+
+            this.Collapse();
         }
 
-        public TreeNodeHelper(string text)
-            : base(text)
-        { }
 
-        public List<TreeNodeHelper> CasheNodes { get; } = new List<TreeNodeHelper>();
+        private void BeforeCollapse(object sender, TreeViewCancelEventArgs e)
+        {
+            TreeNodeHelper node = e.Node as TreeNodeHelper;
+            if (node != null)
+                node.BeforeCollapse();
+        }
 
-        public List<TreeNodeHelper> HideNodes { get; } = new List<TreeNodeHelper>();
+        private void AfterExpand(object sender, TreeViewEventArgs e)
+        {
+            TreeNodeHelper node = e.Node as TreeNodeHelper;
+            if (node != null)
+                node.AfterExpand();
+        }
 
-        private List<TreeNodeHelper> _HideParentNodes;
-        public List<TreeNodeHelper> HideParentNodes => _HideParentNodes ?? (_HideParentNodes = (this.Parent).HideNodes);
+        private bool _processing_AfterCheck;
 
-        private TreeNodeCollection _ParentNodes;
-        public TreeNodeCollection ParentNodes => _ParentNodes ?? (_ParentNodes = this.Parent.Nodes);
+        private void AfterCheck(object sender, TreeViewEventArgs e)
+        {
+            if (_processing_AfterCheck)
+                return;
 
-        public TreeNodeHelper[] AllNodes => HideNodes
-            .Union(this.Nodes.Cast<TreeNodeHelper>())
-            .Union(CasheNodes)
-            .Where(x => x.Name != "Entity")
+            try
+            {
+                _processing_AfterCheck = true;
+                TreeNodeHelper treeNode = e.Node as TreeNodeHelper;
+
+                if (treeNode != null)
+                {
+                    if (!treeNode.Checked)
+                        ChangeParent(treeNode, false);
+
+                    ChangeChilds(treeNode, treeNode.Checked);
+                }
+
+            }
+            finally
+            {
+                _processing_AfterCheck = false;
+            }
+        }
+
+        private void ChangeParent(TreeNodeHelper treeNode, bool value)
+        {
+            TreeNodeHelper parent = treeNode.Parent;
+            if (parent != null)
+            {
+                parent.Checked = value;
+                ChangeParent(parent, value);
+            }
+        }
+
+        private void ChangeChilds(TreeNodeHelper treeNode, bool value)
+        {
+            foreach (var node in treeNode.AllNodes)
+            {
+                node.Checked = value;
+                ChangeChilds(node, value);
+            }
+        }
+
+        protected override void Add(TreeNodeHelper node)
+        {
+            CasheNodes.Add(node);
+            _treeView.Nodes.Add(node);
+        }
+
+        protected override void ChangeVisible(TreeNodeHelper treeNodeHelper)
+        {
+            base.ChangeVisible(treeNodeHelper);
+            if (treeNodeHelper.Visible)
+                _treeView.Nodes.Add(treeNodeHelper);
+            else
+                _treeView.Nodes.Remove(treeNodeHelper);
+        }
+    }
+
+    public class TreeNodeHelper : TreeNode
+    {
+        protected TreeNodeHelper(TreeNodeHelper parent, string text)
+             : base(text)
+        {
+            Parent = parent;
+        }
+
+        protected List<TreeNodeHelper> CasheNodes { get; } = new List<TreeNodeHelper>();
+
+        protected List<TreeNodeHelper> HideNodes { get; } = new List<TreeNodeHelper>();
+
+        public TreeNodeHelper[] AllNodes => CasheNodes
+            .Union(HideNodes)
+            .Where(x => x.Text != "Entity")
             .ToArray();
 
-        public TreeNodeHelper Parent => (TreeNodeHelper)base.Parent;
+        public TreeNodeHelper Parent { get; }
 
         private bool _Visible = true;
         public bool Visible
         {
             get => _Visible; set
             {
-                if (_Visible == value || Text == "Entity")
-                    return;
-
-                if (value)
-                    Show();
-                else
-                    Hide();
-
-                _Visible = value;
+                if (_Visible != value)
+                {
+                    _Visible = value;
+                    ChangeVisible();
+                }
             }
         }
 
-        public void Hide()
+        protected virtual void ChangeVisible()
         {
-            if (Text == "Entity")
-                return;
-
-            HideParentNodes.Add(this);
-            ParentNodes.Remove(this);
+            Parent.ChangeVisible(this);
         }
 
-        public void Show()
+        protected virtual void ChangeVisible(TreeNodeHelper treeNodeHelper)
         {
-            if (Text == "Entity")
-                return;
-
-            HideParentNodes.Remove(this);
-            ParentNodes.Add(this);
-        }
-
-        public void AddRange(TreeNodeHelper[] nodes)
-        {
-            if (nodes.Length == 0)
-                return;
-
-            if (this.IsExpanded)
+            if (treeNodeHelper.Visible)
             {
-                Nodes.AddRange(nodes);
+                if (HideNodes.Remove(treeNodeHelper))
+                    CasheNodes.Add(treeNodeHelper);
+                if (this.IsExpanded)
+                    Nodes.Add(treeNodeHelper);
             }
             else
             {
-                CasheNodes.AddRange(nodes);
-                foreach (TreeNodeHelper node in nodes)
-                {
-                    node._HideParentNodes = HideNodes;
-                    node._ParentNodes = Nodes;
-                }
-
-                Nodes.Add(new TreeNodeHelper("Entity"));
+                if (CasheNodes.Remove(treeNodeHelper))
+                    HideNodes.Add(treeNodeHelper);
+                if (this.IsExpanded)
+                    Nodes.Remove(treeNodeHelper);
             }
+        }
+
+        public TreeNodeHelper CreateNode(string text)
+        {
+            TreeNodeHelper result = new TreeNodeHelper(this, text);
+            Add(result);
+            return result;
+        }
+
+        protected virtual void Add(TreeNodeHelper node)
+        {
+            CasheNodes.Add(node);
+            if (this.IsExpanded)
+                Nodes.Add(node);
+            else
+                BeforeCollapse();
         }
 
         internal void BeforeCollapse()
         {
             Nodes.Clear();
-            Nodes.Add(new TreeNodeHelper("Entity"));
+            Nodes.Add(new TreeNodeHelper(this, "Entity") { Name = "Entity" });
         }
 
         internal void AfterExpand()

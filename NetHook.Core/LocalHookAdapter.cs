@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace NetHook.Core
 {
@@ -29,21 +30,23 @@ namespace NetHook.Core
 
         public LocalHookCodeDoom CodeDoomProvider { get; } = new LocalHookCodeDoom();
 
-        public void Install()
+        public void Install(StringBuilder stringBuilder = null)
         {
             Assembly assembly = CodeDoomProvider.Compiller();
             CodeDoomProvider.Clear();
             UnInstall();
 
-
             foreach (Type type in assembly.GetTypes().Where(x => typeof(LocalHookRuntimeInstance).IsAssignableFrom(x)))
             {
                 LocalHookRuntimeInstance provider = (LocalHookRuntimeInstance)Activator.CreateInstance(type, new object[] { this });
-                CreateHook(provider.Method, provider.MethodHook);
+                string log = CreateHook(provider.Method, provider.MethodHook);
+                if (stringBuilder != null)
+                    stringBuilder.AppendLine(log);
             }
 
             foreach (var keyValue in _memories)
                 keyValue.Value.Install();
+
         }
 
         internal void UnInstall()
@@ -72,8 +75,9 @@ namespace NetHook.Core
             return memInstractions;
         }
 
-        internal void CreateHook(MethodInfo method, MethodInfo methodHook)
+        private string CreateHook(MethodInfo method, MethodInfo methodHook)
         {
+            StringBuilder stringBuilder = new StringBuilder();
             try
             {
                 CheckMethod(method);
@@ -84,8 +88,9 @@ namespace NetHook.Core
 
                 var methodAddress = method.MethodHandle.GetFunctionPointer();
                 var methodAddressHook = methodHook.MethodHandle.GetFunctionPointer();
-                Console.WriteLine($"methodAddress     {methodAddress.ToHex()} {Memory.GetAddressBody(methodAddress).ToHex()}");
-                Console.WriteLine($"methodAddressHook {methodAddressHook.ToHex()} {Memory.GetAddressBody(methodAddressHook).ToHex()}");
+
+                stringBuilder.AppendLine($"methodAddress     {methodAddress.ToHex()} {Memory.GetAddressBody(methodAddress).ToHex()}");
+                stringBuilder.AppendLine($"methodAddressHook {methodAddressHook.ToHex()} {Memory.GetAddressBody(methodAddressHook).ToHex()}");
 
                 var newmem = Alloc(methodAddress);
 
@@ -102,66 +107,71 @@ namespace NetHook.Core
                 methodBody.CheckNop(origBody.Length);
                 newmem.AddJMP(methodBody.Address.Add(origBody.Length));
 
-                Console.WriteLine("Method Body");
-                methodBody.WriteLog();
-                Console.WriteLine("New Memory");
-                newmem.WriteLog(false);
-                Console.WriteLine("Method Body Hook");
-                methodHookBody.WriteLog();
+                stringBuilder.AppendLine("Method Body");
+                stringBuilder.AppendLine(methodBody.WriteLog());
+                stringBuilder.AppendLine("New Memory");
+                stringBuilder.AppendLine(newmem.WriteLog(false));
+                stringBuilder.AppendLine("Method Body Hook");
+                stringBuilder.AppendLine(methodHookBody.WriteLog());
             }
             catch (Exception ex)
             {
+                Console.WriteLine(stringBuilder.ToString());
                 throw new Exception($"Hook error method '{method.Name}' type '{method.DeclaringType.AssemblyQualifiedName}'", ex);
             }
+
+            return stringBuilder.ToString();
         }
 
         public static bool CheckMethod(MethodInfo method, bool throwNewEx = true)
         {
-            try
-            {
-                if (method.IsGenericMethod)
-                    throw new NotImplementedException($"IsGenericMethod");
-
-                if (method.IsGenericMethodDefinition)
-                    throw new NotImplementedException($"IsGenericMethodDefinition");
-
-                if (method.DeclaringType.IsGenericType)
-                    throw new NotImplementedException($"IsGenericType");
-
-                if (method.DeclaringType.IsGenericTypeDefinition)
-                    throw new NotImplementedException($"IsGenericTypeDefinition");
-
-                if (method.Name.Contains('<') || method.Name.Contains('<') || method.Name.Contains('.') || method.Name.Contains('\''))
-                    throw new NotImplementedException($"Запрещеные символы в названии метода '{method.Name}'");
-
-                if (method.IsConstructor)
-                    throw new NotImplementedException($"Запрещено использовать конструкторы");
-
-                if (!method.ReturnType.IsClass && method.ReturnType != typeof(void))
-                    throw new NotImplementedException($"Запрещено использовать структуры в качестве возвращаемого значения. ReturnType '{method.ReturnType.FullName}'");
-
-                foreach (var parametr in method.GetParameters())
-                {
-                    if (!parametr.ParameterType.IsClass)
-                        throw new NotImplementedException($"Запрещено использовать структуры в качестве параметра функции. ParameterName '{parametr.Name}' Type '{parametr.ParameterType.FullName}'");
-
-                    if (parametr.ParameterType.IsByRef)
-                        throw new NotImplementedException($"Запрещено использовать модификар ref или out для параметра функции. ParameterName '{parametr.Name}' Type '{parametr.ParameterType.FullName}'");
-
-                    if (parametr.DefaultValue != DBNull.Value && parametr.DefaultValue != null)
-                        throw new NotImplementedException($"Запрещено использовать DefaultValue для параметра функции. ParameterName '{parametr.Name}' Type '{parametr.ParameterType.FullName}'");
-
-                }
-            }
-            catch (NotImplementedException ex)
-            {
+            if (!CheckMethod(method, out string error))
                 if (throwNewEx)
-                    throw;
-
-                return false;
-            }
+                    throw new NotImplementedException(error);
+                else
+                    return false;
 
             return true;
+        }
+
+        private static bool CheckMethod(MethodInfo method, out string result)
+        {
+            result = string.Empty;
+
+            if (method.IsGenericMethod)
+                result = $"IsGenericMethod";
+
+            if (method.IsGenericMethodDefinition)
+                result = $"IsGenericMethodDefinition";
+
+            if (method.DeclaringType.IsGenericType)
+                result = $"IsGenericType";
+
+            if (method.DeclaringType.IsGenericTypeDefinition)
+                result = $"IsGenericTypeDefinition";
+
+            if (method.Name.Contains('<') || method.Name.Contains('<') || method.Name.Contains('.') || method.Name.Contains('\''))
+                result = $"Запрещеные символы в названии метода '{method.Name}'";
+
+            if (method.IsConstructor)
+                result = $"Запрещено использовать конструкторы";
+
+            if (!method.ReturnType.IsClass && method.ReturnType != typeof(void))
+                result = $"Запрещено использовать структуры в качестве возвращаемого значения. ReturnType '{method.ReturnType.FullName}'";
+
+            foreach (var parametr in method.GetParameters())
+            {
+                if (!parametr.ParameterType.IsClass)
+                    result = $"Запрещено использовать структуры в качестве параметра функции. ParameterName '{parametr.Name}' Type '{parametr.ParameterType.FullName}'";
+
+                if (parametr.ParameterType.IsByRef)
+                    result = $"Запрещено использовать модификар ref или out для параметра функции. ParameterName '{parametr.Name}' Type '{parametr.ParameterType.FullName}'";
+
+                if (parametr.DefaultValue != DBNull.Value && parametr.DefaultValue != null)
+                    result = $"Запрещено использовать DefaultValue для параметра функции. ParameterName '{parametr.Name}' Type '{parametr.ParameterType.FullName}'";
+            }
+
+            return string.IsNullOrEmpty(result);
         }
 
         public MemoryInstractions GetMethodBody(IntPtr address)

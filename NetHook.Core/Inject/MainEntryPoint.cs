@@ -1,6 +1,6 @@
 ﻿using EasyHook;
 using NetHook.Cores.Extensions;
-using NetHook.Cores.Socket;
+using NetHook.Cores.NetSocket;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -58,34 +58,29 @@ namespace NetHook.Cores.Inject
         {
             try
             {
-                using (LoggerClient client = new LoggerClient())
+                using (DuplexSocketClient duplexSocket = new DuplexSocketClient())
                 {
-                    client.OpenChanel(address);
                     HashSet<int> injectDomainsIDs = new HashSet<int>();
                     HashSet<int> errorDomainsIDs = new HashSet<int>();
 
-                    bool isFirst = true;
-                    while (client.Socket.IsSocketConnected())
+                    string[] addressParts = address.Split(':');
+                    duplexSocket.OpenChanel(addressParts[0], int.Parse(addressParts[1]));
+
+                    duplexSocket.HandlerRequest.Add("GetInjectInfo", (y) => GetInjectInfo(injectDomainsIDs, errorDomainsIDs));
+
+                    while (duplexSocket.IsSocketConnected())
                     {
                         try
                         {
-                            AppDomain[] domains = EnumAppDomains()
+                            AppDomain[] alldomains = EnumAppDomains().ToArray();
+
+                            AppDomain[] domains = alldomains
                                 .Where(x => x.Id != AppDomain.CurrentDomain.Id &&
                                 !injectDomainsIDs.Union(errorDomainsIDs).Contains(x.Id))
                                 .ToArray();
 
-                            string message = $"CountDomain:{domains.Length} newDomains:{domains.Select(x => x.Id).JoinString()} injectDomainsIDs:({injectDomainsIDs.JoinString()}) errorDomainsIDs:({errorDomainsIDs.JoinString()})";
-
-                            if (isFirst)
-                            {
-                                var messageSocket = client.AcceptMessage();
-                                isFirst = false;
-                            }
-
                             if (domains.Length > 0)
                             {
-                                client.SetInjectConnection(message);
-
                                 foreach (var domain in domains)
                                 {
                                     try
@@ -95,11 +90,12 @@ namespace NetHook.Cores.Inject
 
                                         domainEntryPoint.InjectDomain(address);
                                         injectDomainsIDs.Add(domain.Id);
+                                        duplexSocket.SendMessage("NewInjectDomain", $"CurrentDomain:{AppDomain.CurrentDomain.Id} Inject:{domain.Id}");
                                     }
                                     catch (Exception ex)
                                     {
                                         errorDomainsIDs.Add(domain.Id);
-                                        client.SetInjectConnection(ex.ToString());
+                                        duplexSocket.SendMessage("WriteInjectError", ex.ToString());
                                         Console.WriteLine(ex);
                                     }
                                 }
@@ -107,19 +103,32 @@ namespace NetHook.Cores.Inject
                         }
                         catch (Exception ex)
                         {
-                            client.Send(ex.ToString());
+                            duplexSocket.SendMessage("WriteInjectError", ex.ToString());
                             Console.WriteLine(ex);
                         }
 
                         Thread.Sleep(500);
                     }
                 }
-
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex);
             }
+        }
+
+        private static string GetInjectInfo(HashSet<int> injectDomainsIDs, HashSet<int> errorDomainsIDs)
+        {
+            AppDomain[] alldomains = EnumAppDomains().ToArray();
+
+            AppDomain[] domains = alldomains
+                .Where(x => x.Id != AppDomain.CurrentDomain.Id &&
+                !injectDomainsIDs.Union(errorDomainsIDs).Contains(x.Id))
+                .ToArray();
+
+            string message = $"CountDomain:{domains.Length} NewDomains:{domains.Select(x => x.Id).JoinString()} Domains:{alldomains.Select(x => x.Id).JoinString()} injectDomainsIDs:({injectDomainsIDs.JoinString()}) errorDomainsIDs:({errorDomainsIDs.JoinString()}) Current:{AppDomain.CurrentDomain.Id}";
+
+            return message;
         }
 
     }

@@ -154,10 +154,5 @@ namespace NetHook.UI
         private void toolStripTextBox_searchValue_TextChanged(object sender, EventArgs e) =>
             toolStripTextBox_searchValue_Click(sender, e);
 
-        private void OpenProcess_SizeChanged(object sender, EventArgs e)
-        {
-            ResizeFormHelper.Instance.ResizeСhangesForm(this);
-        }
-
     }
 }
