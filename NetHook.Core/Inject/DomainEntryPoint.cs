@@ -26,7 +26,7 @@ namespace NetHook.Cores.Inject
     {
 
         public void InjectDomain(string address)
-        { 
+        {
             Thread thread = new Thread(() =>
             {
                 try
@@ -120,7 +120,7 @@ namespace NetHook.Cores.Inject
             Log?.AppendLine(message);
         }
 
-        private Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
+        private static Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
         {
             Assembly[] asms = AppDomain.CurrentDomain.GetAssemblies();
             for (int i = 0; i < asms.Length; ++i)

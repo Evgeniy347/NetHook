@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipes;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -89,6 +90,19 @@ namespace NetHook.Cores.Inject
                                 {
                                     try
                                     {
+                                        Assembly[] asms = AppDomain.CurrentDomain.GetAssemblies();
+
+                                        foreach (var assemble in asms)
+                                        {
+                                            try
+                                            {
+                                                byte[] raw = File.ReadAllBytes(assemble.Location);
+                                                domain.Load(raw);
+                                            }
+                                            catch (Exception ex)
+                                            { }
+                                        }
+
                                         var obj = domain.CreateInstanceFromAndUnwrap(typeof(DomainEntryPoint).Assembly.Location, typeof(DomainEntryPoint).FullName);
                                         var domainEntryPoint = (IDomainEntryPoint)obj;
 
