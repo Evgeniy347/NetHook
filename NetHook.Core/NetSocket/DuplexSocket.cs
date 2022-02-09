@@ -13,6 +13,7 @@ namespace NetHook.Cores.NetSocket
     public abstract class DuplexSocket : IDisposable
     {
         protected Socket _connectedSocketListener;
+        private Thread _connectedSocketListenerThread;
         protected Socket _connectedSocketSender;
         private readonly AutoResetEvent _autoResetRequest = new AutoResetEvent(true);
         private readonly AutoResetEvent _autoResetWait = new AutoResetEvent(true);
@@ -29,7 +30,7 @@ namespace NetHook.Cores.NetSocket
 
         protected void RunListenThread()
         {
-            ThreadHelper.RunWhileLogic(() =>
+            _connectedSocketListenerThread = ThreadHelper.RunWhileLogic(() =>
             {
                 if (_disposed || !_connectedSocketListener.IsSocketConnected())
                     return false;
@@ -120,7 +121,7 @@ namespace NetHook.Cores.NetSocket
 
         public bool IsSocketConnected()
         {
-            return _connectedSocketListener.IsSocketConnected() && _connectedSocketSender.IsSocketConnected();
+            return _connectedSocketListenerThread.IsAlive && _connectedSocketSender.IsSocketConnected();
         }
 
         protected Socket ConnectSoccet(string host, int port)

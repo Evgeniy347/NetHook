@@ -26,7 +26,7 @@ namespace NetHook.Cores.Inject
     {
 
         public void InjectDomain(string address)
-        {
+        { 
             Thread thread = new Thread(() =>
             {
                 try
@@ -88,7 +88,7 @@ namespace NetHook.Cores.Inject
                 }
             });
 
-            thread.Name = "InjectThread";
+            thread.Name = "DomainEntryPointInject";
             thread.SetApartmentState(ApartmentState.STA);
             thread.Start();
         }

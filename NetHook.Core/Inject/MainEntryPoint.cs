@@ -60,6 +60,8 @@ namespace NetHook.Cores.Inject
             {
                 using (DuplexSocketClient duplexSocket = new DuplexSocketClient())
                 {
+                    Thread.CurrentThread.Name = "MainEntryPoint";
+
                     HashSet<int> injectDomainsIDs = new HashSet<int>();
                     HashSet<int> errorDomainsIDs = new HashSet<int>();
 
@@ -76,7 +78,9 @@ namespace NetHook.Cores.Inject
 
                             AppDomain[] domains = alldomains
                                 .Where(x => x.Id != AppDomain.CurrentDomain.Id &&
-                                !injectDomainsIDs.Union(errorDomainsIDs).Contains(x.Id))
+                                !injectDomainsIDs.Contains(x.Id) &&
+                                !errorDomainsIDs.Contains(x.Id) &&
+                                x.FriendlyName != "EasyHook")
                                 .ToArray();
 
                             if (domains.Length > 0)
