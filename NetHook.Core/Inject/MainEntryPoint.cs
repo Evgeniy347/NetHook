@@ -90,7 +90,7 @@ namespace NetHook.Cores.Inject
 
                                         domainEntryPoint.InjectDomain(address);
                                         injectDomainsIDs.Add(domain.Id);
-                                        duplexSocket.SendMessage("NewInjectDomain", $"CurrentDomain:{AppDomain.CurrentDomain.Id} Inject:{domain.Id}");
+                                        duplexSocket.SendMessage("NewInjectDomain", $"CurrentDomain Id:{AppDomain.CurrentDomain.Id} FriendlyName:{AppDomain.CurrentDomain.FriendlyName} Inject Id:{domain.Id} FriendlyName:{domain.FriendlyName}");
                                     }
                                     catch (Exception ex)
                                     {
@@ -126,7 +126,7 @@ namespace NetHook.Cores.Inject
                 !injectDomainsIDs.Union(errorDomainsIDs).Contains(x.Id))
                 .ToArray();
 
-            string message = $"CountDomain:{domains.Length} NewDomains:{domains.Select(x => x.Id).JoinString()} Domains:{alldomains.Select(x => x.Id).JoinString()} injectDomainsIDs:({injectDomainsIDs.JoinString()}) errorDomainsIDs:({errorDomainsIDs.JoinString()}) Current:{AppDomain.CurrentDomain.Id}";
+            string message = $"CountDomain:{domains.Length} NewDomains:{domains.Select(x => $"{x.Id} ({x.FriendlyName})").JoinString(", ")} Domains:{alldomains.Select(x => $"{x.Id} ({x.FriendlyName})").JoinString(", ")} injectDomainsIDs:({injectDomainsIDs.JoinString(", ")}) errorDomainsIDs:({errorDomainsIDs.JoinString(", ")}) Current:{AppDomain.CurrentDomain.Id}";
 
             return message;
         }

@@ -38,7 +38,7 @@ namespace NetHook.Cores.Extensions
             if (method != null && result.MethodName != method)
                 throw new Exception($"Check Method '{method}' {Environment.NewLine}{message}");
 
-            Console.WriteLine($"Port:{socket.GetKey()} AcceptMessage:{result.MethodName} TypeMessage:{result.TypeMessage} ID:{result.ID} Size:{result.Size} SocketElapsed {stopwatch.Elapsed}");
+            Console.WriteLine($"Port:{socket.GetKey()} AcceptMessage:{result} SocketElapsed {stopwatch.Elapsed}");
 
             if (result.ID <= 0)
             {
@@ -122,7 +122,7 @@ namespace NetHook.Cores.Extensions
             }
             finally
             {
-                Console.WriteLine($"Port:{socket.GetKey()} SendMessage:{message.MethodName} TypeMessage:{message.TypeMessage} ID:{message.ID} Size:{message.Size} SocketElapsed {stopwatch.Elapsed}");
+                Console.WriteLine($"Port:{socket.GetKey()} SendMessage:{message} SocketElapsed {stopwatch.Elapsed}");
             }
         }
 

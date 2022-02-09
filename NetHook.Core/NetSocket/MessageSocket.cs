@@ -41,32 +41,22 @@ namespace NetHook.Cores.NetSocket
 
         public int ID { get; private set; }
 
-        public string RawData
-        {
-            get => $"{MethodName}|{Size}|{ID}|{(int)TypeMessage}|{Body}";
-        }
+        public string DomainInfo { get; private set; } = $"{AppDomain.CurrentDomain.Id} {AppDomain.CurrentDomain.FriendlyName}";
+
+        public string RawData => $"{MethodName}|{Size}|{ID}|{(int)TypeMessage}|{DomainInfo}|{Body}";
 
         private void ParceRaw(string value)
         {
             try
             {
-                int methodIndex = value.IndexOf('|');
-                int sizeIndex = value.IndexOf('|', methodIndex + 1);
-                int idIndex = value.IndexOf('|', sizeIndex + 1);
-                int typeIndex = value.IndexOf('|', idIndex + 1);
+                string[] parts = value.Split('|');
 
-                MethodName = value.Substring(0, methodIndex);
-                string sizeStr = value.Substring(methodIndex + 1, sizeIndex - methodIndex - 1);
-                int size = int.Parse(sizeStr);
-
-                string idStr = value.Substring(sizeIndex + 1, idIndex - sizeIndex - 1);
-                ID = int.Parse(idStr);
-
-                string typeStr = value.Substring(idIndex + 1, typeIndex - idIndex - 1);
-
-                TypeMessage = (TypeMessage)int.Parse(typeStr);
-
-                Body = value.Substring(typeIndex + 1);
+                MethodName = parts[0];
+                int size = int.Parse(parts[1]);
+                ID = int.Parse(parts[2]);
+                TypeMessage = (TypeMessage)int.Parse(parts[3]);
+                DomainInfo = parts[4];
+                Body = parts.Skip(5).JoinString("|");
 
                 if (size != Size)
                     throw new Exception("Check Size Exception");
@@ -97,6 +87,11 @@ namespace NetHook.Cores.NetSocket
             {
                 Body = obj.SerializerJSON();
             }
+        }
+
+        public override string ToString()
+        {
+            return $"{MethodName} ID:{ID} Size:{Size} TypeMessage:{TypeMessage} DomainInfo:{DomainInfo} ";
         }
     }
 }
