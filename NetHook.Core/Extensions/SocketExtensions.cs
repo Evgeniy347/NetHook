@@ -15,7 +15,7 @@ namespace NetHook.Cores.Extensions
 
         public static void SetDefaultProperty(this Socket socket)
         {
-            socket.ReceiveTimeout = int.MaxValue;
+            socket.ReceiveTimeout = 1000;
             socket.ReceiveBufferSize = int.MaxValue;
             socket.SendBufferSize = int.MaxValue;
         }

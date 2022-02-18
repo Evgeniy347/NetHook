@@ -15,12 +15,26 @@ namespace NetHook.TestInject
             {
                 Thread thread = new Thread((o) =>
                 {
+                    string indexStr = o.ToString();
                     int j = 0;
+                    string value = null;
+
                     while (true)
                     {
                         j++;
-                        string value = o?.ToString() == "0" ? TestMethodReqursive(j.ToString()) : TestMethod(j.ToString());
-
+                        string jStr = j.ToString();
+                        switch (indexStr)
+                        {
+                            case "0":
+                                value = TestMethodReqursive(jStr);
+                                break;
+                            case "1":
+                                value = TestMethod_1(jStr, jStr, jStr, jStr, jStr, jStr, jStr);
+                                break;
+                            default:
+                                value = TestMethod(jStr);
+                                break;
+                        }
                         Console.WriteLine(value);
 
                         Thread.Sleep(i * 100 + 1000);
@@ -36,6 +50,11 @@ namespace NetHook.TestInject
         }
 
         public static string TestMethod(string value)
+        {
+            return value + " " + Thread.CurrentThread.ManagedThreadId + " " + string.Join(" => ", new StackTrace().GetFrames().Select(x => x.GetMethod().Name).Reverse().ToArray());
+        }
+
+        public static string TestMethod_1(string value, string value2, string value3, string value4, string value5, string value6, string value7)
         {
             return value + " " + Thread.CurrentThread.ManagedThreadId + " " + string.Join(" => ", new StackTrace().GetFrames().Select(x => x.GetMethod().Name).Reverse().ToArray());
         }

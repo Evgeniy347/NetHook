@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetHook.Core", "NetHook.Cor
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetHook.MSTest", "NetHook.MSTest\NetHook.MSTest.csproj", "{C3D8FAFD-7EB6-4D45-8BC3-736698823C4D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleApp1", "ConsoleApp1\ConsoleApp1.csproj", "{F46C6E84-0DF2-44DD-811B-FB225FA1CE7B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -69,6 +71,18 @@ Global
 		{C3D8FAFD-7EB6-4D45-8BC3-736698823C4D}.Release|x64.Build.0 = Release|x64
 		{C3D8FAFD-7EB6-4D45-8BC3-736698823C4D}.Release|x86.ActiveCfg = Release|Any CPU
 		{C3D8FAFD-7EB6-4D45-8BC3-736698823C4D}.Release|x86.Build.0 = Release|Any CPU
+		{F46C6E84-0DF2-44DD-811B-FB225FA1CE7B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F46C6E84-0DF2-44DD-811B-FB225FA1CE7B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F46C6E84-0DF2-44DD-811B-FB225FA1CE7B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F46C6E84-0DF2-44DD-811B-FB225FA1CE7B}.Debug|x64.Build.0 = Debug|Any CPU
+		{F46C6E84-0DF2-44DD-811B-FB225FA1CE7B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F46C6E84-0DF2-44DD-811B-FB225FA1CE7B}.Debug|x86.Build.0 = Debug|Any CPU
+		{F46C6E84-0DF2-44DD-811B-FB225FA1CE7B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F46C6E84-0DF2-44DD-811B-FB225FA1CE7B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F46C6E84-0DF2-44DD-811B-FB225FA1CE7B}.Release|x64.ActiveCfg = Release|Any CPU
+		{F46C6E84-0DF2-44DD-811B-FB225FA1CE7B}.Release|x64.Build.0 = Release|Any CPU
+		{F46C6E84-0DF2-44DD-811B-FB225FA1CE7B}.Release|x86.ActiveCfg = Release|Any CPU
+		{F46C6E84-0DF2-44DD-811B-FB225FA1CE7B}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
