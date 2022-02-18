@@ -99,6 +99,9 @@ namespace NetHook.Core
 
                 methodBody.AddJMP(methodAddressHook);
 
+                //^//
+                // methodBody.AddJMP(newmem.EndAddress);
+
                 byte[] origBody = methodBody.GetOriginalBody(methodBody.Size);
 
                 methodHookBody.FindAndReplaceCall(newmem.EndAddress);

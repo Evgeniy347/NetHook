@@ -60,8 +60,15 @@ namespace NetHook.Cores.NetSocket
             if (HandlerRequest != null &&
                 HandlerRequest.TryGetValue(message.MethodName, out Func<MessageSocket, object> func))
             {
-                var result = func.Invoke(message);
-                messageSocket.SetObject(result);
+                try
+                {
+                    var result = func.Invoke(message);
+                    messageSocket.SetObject(result);
+                }
+                catch (Exception ex)
+                {
+                    messageSocket.ErrorText = ex.ToString();
+                }
             }
 
             _connectedSocketSender.SendMessage(messageSocket);

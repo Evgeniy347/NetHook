@@ -43,7 +43,9 @@ namespace NetHook.Cores.NetSocket
 
         public string DomainInfo { get; private set; } = $"{AppDomain.CurrentDomain.Id} {AppDomain.CurrentDomain.FriendlyName}";
 
-        public string RawData => $"{MethodName}|{Size}|{ID}|{(int)TypeMessage}|{DomainInfo}|{Body}";
+        public string RawData => $"{MethodName}|{Size}|{ID}|{(int)TypeMessage}|{DomainInfo}|{ErrorText}|{Body}";
+
+        public string ErrorText { get; internal set; }
 
         private void ParceRaw(string value)
         {
@@ -56,7 +58,8 @@ namespace NetHook.Cores.NetSocket
                 ID = int.Parse(parts[2]);
                 TypeMessage = (TypeMessage)int.Parse(parts[3]);
                 DomainInfo = parts[4];
-                Body = parts.Skip(5).JoinString("|");
+                ErrorText = parts[5];
+                Body = parts.Skip(6).JoinString("|");
 
                 if (size != Size)
                     throw new Exception("Check Size Exception");
@@ -69,6 +72,9 @@ namespace NetHook.Cores.NetSocket
 
         public T GetObject<T>()
         {
+            if (!string.IsNullOrEmpty(ErrorText))
+                throw new Exception(ErrorText);
+
             if (Body == string.Empty || Body == null)
                 return default;
             else if (typeof(string) == typeof(T))

@@ -181,7 +181,7 @@ namespace NetHook.Cores.Inject
                 && !x.FullName.StartsWith("Aspose")
                 && !x.FullName.StartsWith("mscorlib"))
                 .Select(x => GetAssembleInfo(x))
-                .Where(x => string.IsNullOrEmpty(x.ErrorText))
+                .Where(x => x != null && string.IsNullOrEmpty(x.ErrorText))
                 .ToArray(),
                 CurrentID = AppDomain.CurrentDomain.Id,
             };
