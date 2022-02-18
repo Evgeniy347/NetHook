@@ -163,6 +163,8 @@ namespace NetHook.UI
                     row.Cells.Add(new DataGridViewTextBoxCell() { Value = thread.Frames.FirstOrDefault().DateCreate });
                     row.Cells.Add(new DataGridViewTextBoxCell() { Value = thread.Frames.FirstOrDefault().DateCreate.Add(timeSpan) });
                     row.Cells.Add(new DataGridViewTextBoxCell() { Value = timeSpan });
+                    row.Cells.Add(new DataGridViewTextBoxCell() { Value = "" });
+                    row.Cells.Add(new DataGridViewTextBoxCell() { Value = thread.URL });
 
                     rows.Add(row);
                     _rowsThread[row] = thread;

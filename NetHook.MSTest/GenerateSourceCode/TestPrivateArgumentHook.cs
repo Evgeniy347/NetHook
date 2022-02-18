@@ -24,7 +24,6 @@ namespace LocalHookProviders
         {
         }
         
-        [System.Runtime.ConstrainedExecution.PrePrepareMethodAttribute()]
         private static object TestInstanceMethod_Hook(object thisObj, object arg_0)
         {
             object[] objectArray = new object[] { arg_0 };
@@ -33,7 +32,10 @@ namespace LocalHookProviders
             LocalHookAdapter.Current.BeginInvoke("NetHook.MSTest.UnitTestLocalHook+TestPrivateArgumentInstance, NetHook.MSTest, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null;TestInstanceMethod", thisObj, objectArray);
             try
             {
-                if (objectArray.Length > 0) value = TestInstanceMethod_Hook(thisObj, arg_0);
+                if (objectArray.Length == 0) value = TestInstanceMethod_Hook(thisObj, arg_0);
+                else if (objectArray.Length == 1) value = TestInstanceMethod_Hook(thisObj, arg_0);
+                else if (objectArray.Length == 2) value = TestInstanceMethod_Hook(thisObj, arg_0);
+                else if (objectArray.Length == 3) value = TestInstanceMethod_Hook(thisObj, arg_0);
                 else value = TestInstanceMethod_Hook(thisObj, arg_0);
             }
             catch (System.Exception ex)
@@ -57,7 +59,6 @@ namespace LocalHookProviders
         {
         }
         
-        [System.Runtime.ConstrainedExecution.PrePrepareMethodAttribute()]
         private static object TestStaticMethod_Hook(object arg_0)
         {
             object[] objectArray = new object[] { arg_0 };
@@ -67,7 +68,10 @@ namespace LocalHookProviders
             LocalHookAdapter.Current.BeginInvoke("NetHook.MSTest.UnitTestLocalHook+TestPrivateArgumentInstance, NetHook.MSTest, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null;TestStaticMethod", thisObj, objectArray);
             try
             {
-                if (objectArray.Length > 0) value = TestStaticMethod_Hook(arg_0);
+                if (objectArray.Length == 0) value = TestStaticMethod_Hook(arg_0);
+                else if (objectArray.Length == 1) value = TestStaticMethod_Hook(arg_0);
+                else if (objectArray.Length == 2) value = TestStaticMethod_Hook(arg_0);
+                else if (objectArray.Length == 3) value = TestStaticMethod_Hook(arg_0);
                 else value = TestStaticMethod_Hook(arg_0);
             }
             catch (System.Exception ex)

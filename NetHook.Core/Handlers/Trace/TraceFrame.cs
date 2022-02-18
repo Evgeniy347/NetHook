@@ -29,11 +29,14 @@ namespace NetHook.Cores.Handlers.Trace
         public TimeSpan Elapsed => _stopwatch.Elapsed;
 
         public bool IsRunning => _stopwatch.IsRunning;
+
         public int ThreadID { get; set; }
 
         public TraceFrame Parent { get; }
 
         public ConcurrentBag<TraceFrame> ChildFrames { get; } = new ConcurrentBag<TraceFrame>();
+
+        public string URL { get; set; }
 
         internal TraceFrame CreateChild(MethodInfo method)
         {

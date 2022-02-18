@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
+using System.Web;
 
 namespace NetHook.Cores.Handlers.Trace
 {
@@ -26,20 +27,23 @@ namespace NetHook.Cores.Handlers.Trace
 
     public class TraceHandler : IHandlerHook
     {
-        private readonly ConcurrentDictionary<object, TraceRoot> _threadframes = new ConcurrentDictionary<object, TraceRoot>();
+        private readonly ConcurrentDictionary<int, TraceRoot> _threadframes = new ConcurrentDictionary<int, TraceRoot>();
 
         public void BeforeInvoke(MethodInfo method, object instance, object[] arguments)
         {
             Thread thread = Thread.CurrentThread;
 
-            if (!_threadframes.TryGetValue(thread, out TraceRoot traceRoot))
-                _threadframes[thread] = traceRoot = new TraceRoot(thread);
+            if (!_threadframes.TryGetValue(thread.ManagedThreadId, out TraceRoot traceRoot))
+                _threadframes[thread.ManagedThreadId] = traceRoot = new TraceRoot(thread);
 
             TraceFrame traceFrame = traceRoot.Current;
 
             if (traceFrame == null)
             {
                 traceFrame = new TraceFrame(method);
+                if (HttpContext.Current != null)
+                    traceFrame.URL = HttpContext.Current.Request.RawUrl;
+
                 traceRoot.Frames.Add(traceFrame);
             }
             else
@@ -55,7 +59,7 @@ namespace NetHook.Cores.Handlers.Trace
         {
             Thread thread = Thread.CurrentThread;
 
-            if (!_threadframes.TryGetValue(thread, out TraceRoot traceRoot))
+            if (!_threadframes.TryGetValue(thread.ManagedThreadId, out TraceRoot traceRoot))
                 throw new Exception();
 
             TraceFrame traceFrame = traceRoot.Current ??

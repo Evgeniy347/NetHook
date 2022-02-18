@@ -35,7 +35,9 @@ namespace NetHook.MSTest
                 Console.WriteLine(fileName);
                 File.WriteAllText(fileName, fileValue);
 
-                adapter.Install();
+                StringBuilder stringBuilder = new StringBuilder();
+                adapter.Install(stringBuilder);
+                Console.WriteLine(stringBuilder);
 
                 ActionHandler handler = new ActionHandler();
 

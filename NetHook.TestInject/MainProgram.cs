@@ -19,10 +19,9 @@ namespace NetHook.TestInject
                     while (true)
                     {
                         j++;
-                        string value = o?.ToString() == "0" ? TestMethodReqursive(j.ToString()) : TestMethod(j.ToString());
+                        string value = o?.ToString() == "0" ? new MainProgram().TestMethodReqursive(j.ToString()) : new MainProgram().TestMethod(j.ToString());
 
                         Console.WriteLine(value);
-
                         Thread.Sleep(i * 100 + 1000);
                     }
                 });
@@ -35,16 +34,16 @@ namespace NetHook.TestInject
             Console.ReadLine();
         }
 
-        public static string TestMethod(string value)
+        public string TestMethod(string value)
         {
-            return value + " " + Thread.CurrentThread.ManagedThreadId + " " + string.Join(" => ", new StackTrace().GetFrames().Select(x => x.GetMethod().Name).Reverse().ToArray());
+            var t = this.GetHashCode();
+            return value + " " + t + " " + Thread.CurrentThread.ManagedThreadId + " " + string.Join(" => ", new StackTrace().GetFrames().Select(x => x.GetMethod().Name).Reverse().ToArray());
         }
 
         static int index = 0;
 
-        public static string TestMethodReqursive(string value)
+        public string TestMethodReqursive(string value)
         {
-
             if (index == 0)
                 index = 5;
             else

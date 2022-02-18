@@ -19,8 +19,10 @@ namespace NetHook.Cores.Inject.AssemblyModel
         [DataMember]
         public int ThreadID { get; set; }
 
-
         [DataMember]
         public ThreadState ThreadState { get; set; }
+
+        [DataMember]
+        public string URL { get; internal set; }
     }
 }
