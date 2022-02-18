@@ -291,6 +291,7 @@ namespace NetHook.Cores.Inject
                 ThreadID = thread.ManagedThreadId,
                 ThreadState = thread.ThreadState,
                 Frames = frames.Select(x => ConvertFrame(x)).ToArray(),
+                URL = frames.FirstOrDefault(x => x.URL != null).URL,
             };
 
             return resilt;

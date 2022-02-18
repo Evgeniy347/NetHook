@@ -36,7 +36,6 @@ namespace NetHook.TestInject
                                 break;
                         }
                         Console.WriteLine(value);
-
                         Thread.Sleep(i * 100 + 1000);
                     }
                 });
@@ -49,9 +48,10 @@ namespace NetHook.TestInject
             Console.ReadLine();
         }
 
-        public static string TestMethod(string value)
+        public string TestMethod(string value)
         {
-            return value + " " + Thread.CurrentThread.ManagedThreadId + " " + string.Join(" => ", new StackTrace().GetFrames().Select(x => x.GetMethod().Name).Reverse().ToArray());
+            var t = this.GetHashCode();
+            return value + " " + t + " " + Thread.CurrentThread.ManagedThreadId + " " + string.Join(" => ", new StackTrace().GetFrames().Select(x => x.GetMethod().Name).Reverse().ToArray());
         }
 
         public static string TestMethod_1(string value, string value2, string value3, string value4, string value5, string value6, string value7)
@@ -61,9 +61,8 @@ namespace NetHook.TestInject
 
         static int index = 0;
 
-        public static string TestMethodReqursive(string value)
+        public string TestMethodReqursive(string value)
         {
-
             if (index == 0)
                 index = 5;
             else

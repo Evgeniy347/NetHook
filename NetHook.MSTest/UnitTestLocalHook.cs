@@ -21,15 +21,13 @@ namespace NetHook.MSTest
 
             MethodInfo methodInstance = typeof(TestInstance).GetMethod("TestInstanceMethod", BindingFlags.Instance | BindingFlags.Public);
 
-            MethodInfo methodStatic = typeof(TestInstance).GetMethod("TestStaticMethod");
-
             Action testAction = () =>
             {
                 Assert.AreEqual($"TestInstanceMethod 1 test", instance1.TestInstanceMethod("test"));
                 Assert.AreEqual($"TestInstanceMethod 2 test", instance2.TestInstanceMethod("test"));
             };
 
-            Helpers.TestInvoke<TestInstance, string, string>(testAction, 2, methodInstance, methodStatic);
+            Helpers.TestInvoke<TestInstance, string, string>(testAction, 2, methodInstance);
         }
 
         [TestMethod]

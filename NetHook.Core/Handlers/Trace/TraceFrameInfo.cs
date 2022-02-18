@@ -33,5 +33,8 @@ namespace NetHook.Cores.Handlers.Trace
 
         [DataMember]
         public TraceFrameInfo[] ChildFrames { get; set; }
+
+        [DataMember]
+        public string URL { get; internal set; }
     }
 }

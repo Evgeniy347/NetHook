@@ -56,7 +56,7 @@ namespace NetHook.Core
             method.Attributes =
                 MemberAttributes.Private | MemberAttributes.Static;
 
-            method.CustomAttributes.Add(new CodeAttributeDeclaration(new CodeTypeReference(typeof(PrePrepareMethodAttribute))));
+            //method.CustomAttributes.Add(new CodeAttributeDeclaration(new CodeTypeReference(typeof(PrePrepareMethodAttribute))));
 
             var parameters = methodInfo.GetParameters();
 
@@ -87,15 +87,33 @@ namespace NetHook.Core
             CodeTryCatchFinallyStatement tryCatchFinaly = new CodeTryCatchFinallyStatement();
             method.Statements.Add(tryCatchFinaly);
 
+            //if (methodInfo.ReturnType != typeof(void))
+            //{
+            //    method.ReturnType = new CodeTypeReference(typeof(object));
+            //    tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"if (objectArray.Length > 0) value = {method.Name}({paramsStr})"));
+            //    tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"else value = {method.Name}({paramsStr})"));
+            //}
+            //else
+            //{
+            //    tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"if (objectArray.Length > 0) {method.Name}({paramsStr})"));
+            //    tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"else {method.Name}({paramsStr})"));
+            //}
+
             if (methodInfo.ReturnType != typeof(void))
             {
                 method.ReturnType = new CodeTypeReference(typeof(object));
-                tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"if (objectArray.Length > 0) value = {method.Name}({paramsStr})"));
+                tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"if (objectArray.Length == 0) value = {method.Name}({paramsStr})"));
+                tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"else if (objectArray.Length == 1) value = {method.Name}({paramsStr})"));
+                tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"else if (objectArray.Length == 2) value = {method.Name}({paramsStr})"));
+                tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"else if (objectArray.Length == 3) value = {method.Name}({paramsStr})"));
                 tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"else value = {method.Name}({paramsStr})"));
             }
             else
             {
-                tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"if (objectArray.Length > 0) {method.Name}({paramsStr})"));
+                tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"if (objectArray.Length == 0) {method.Name}({paramsStr})"));
+                tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"else if (objectArray.Length == 1) {method.Name}({paramsStr})"));
+                tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"else if (objectArray.Length == 2) {method.Name}({paramsStr})"));
+                tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"else if (objectArray.Length == 3) {method.Name}({paramsStr})"));
                 tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"else {method.Name}({paramsStr})"));
             }
 

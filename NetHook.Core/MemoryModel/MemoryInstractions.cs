@@ -67,12 +67,14 @@ namespace NetHook.Core
             int i = 0;
             Instruction[] instructions = memory.GetInstruction(methodAddress).ToArray();
 
-            Instruction[] callInstructions = instructions.Reverse()
+            Instruction[][] callInstructionsGroups = instructions.Reverse()
                 .Where(x => x.Mnemonic == SharpDisasm.Udis86.ud_mnemonic_code.UD_Icall)
                 .GroupBy(x => x.ToString())
-                .Where(x => x.Count() == 2)
-                .FirstOrDefault()
+                .Where(x => x.Count() == 5)
+                .Select(x => x.ToArray())
                 .ToArray();
+
+            Instruction[] callInstructions = callInstructionsGroups.Single();
 
             foreach (var instruct in instructions)
             {
@@ -80,6 +82,26 @@ namespace NetHook.Core
                 {
                     var addressInstruction = methodAddress.Add(i);
                     var newCall = addressInstruction.Call(newMethod);
+
+
+                    if (newCall.Length != instruct.Length)
+                    {
+                        if (newCall.Length < instruct.Length)
+                        {
+                            byte[] newCallAndNoop = new byte[instruct.Length];
+
+                            for (int noopindex = 0; noopindex < newCallAndNoop.Length; noopindex++)
+                                newCallAndNoop[noopindex] = 0x90;
+
+                            for (int noopindex = 0; noopindex < newCall.Length; noopindex++)
+                                newCallAndNoop[noopindex] = newCall[noopindex];
+
+                            newCall = newCallAndNoop;
+                        }
+                        else
+                            throw new Exception("Не совпадает размер инструкций");
+                    }
+
                     i += newCall.Length;
                     resultInstruction.Add(newCall);
                 }

@@ -24,7 +24,6 @@ namespace LocalHookProviders
         {
         }
         
-        [System.Runtime.ConstrainedExecution.PrePrepareMethodAttribute()]
         private static object TestInstanceMethod_Hook(object thisObj, object arg_0)
         {
             object[] objectArray = new object[] { arg_0 };
@@ -33,7 +32,10 @@ namespace LocalHookProviders
             LocalHookAdapter.Current.BeginInvoke("NetHook.MSTest.UnitTestLocalHook+TestInstance, NetHook.MSTest, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null;TestInstanceMethod", thisObj, objectArray);
             try
             {
-                if (objectArray.Length > 0) value = TestInstanceMethod_Hook(thisObj, arg_0);
+                if (objectArray.Length == 0) value = TestInstanceMethod_Hook(thisObj, arg_0);
+                else if (objectArray.Length == 1) value = TestInstanceMethod_Hook(thisObj, arg_0);
+                else if (objectArray.Length == 2) value = TestInstanceMethod_Hook(thisObj, arg_0);
+                else if (objectArray.Length == 3) value = TestInstanceMethod_Hook(thisObj, arg_0);
                 else value = TestInstanceMethod_Hook(thisObj, arg_0);
             }
             catch (System.Exception ex)
@@ -44,40 +46,6 @@ namespace LocalHookProviders
             finally
             {
                 LocalHookAdapter.Current.AfterInvoke("NetHook.MSTest.UnitTestLocalHook+TestInstance, NetHook.MSTest, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null;TestInstanceMethod", thisObj, value, e);
-            }
-            return value;
-        }
-    }
-    
-    public sealed class LocalHookProvider_TestStaticMethod_1 : NetHook.Core.LocalHookRuntimeInstance
-    {
-        
-        public LocalHookProvider_TestStaticMethod_1(NetHook.Core.LocalHookAdapter adapter) : 
-                base(LocalHookAdapter.Current.Get("NetHook.MSTest.UnitTestLocalHook+TestInstance, NetHook.MSTest, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null;TestStaticMethod"),  typeof(LocalHookProvider_TestStaticMethod_1).GetMethod("TestStaticMethod_Hook", BindingFlags.Static | BindingFlags.NonPublic))
-        {
-        }
-        
-        [System.Runtime.ConstrainedExecution.PrePrepareMethodAttribute()]
-        private static object TestStaticMethod_Hook(object arg_0)
-        {
-            object[] objectArray = new object[] { arg_0 };
-            object value = IntPtr.Zero;
-            Exception e = null;
-            object thisObj = null;
-            LocalHookAdapter.Current.BeginInvoke("NetHook.MSTest.UnitTestLocalHook+TestInstance, NetHook.MSTest, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null;TestStaticMethod", thisObj, objectArray);
-            try
-            {
-                if (objectArray.Length > 0) value = TestStaticMethod_Hook(arg_0);
-                else value = TestStaticMethod_Hook(arg_0);
-            }
-            catch (System.Exception ex)
-            {
-                e = ex;
-                throw;
-            }
-            finally
-            {
-                LocalHookAdapter.Current.AfterInvoke("NetHook.MSTest.UnitTestLocalHook+TestInstance, NetHook.MSTest, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null;TestStaticMethod", thisObj, value, e);
             }
             return value;
         }
