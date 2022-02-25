@@ -11,6 +11,45 @@ namespace NetHook.TestInject
     {
         public static void Main(string[] args)
         {
+            string jStr = "xxx";
+            string value = new MainProgram().TestMethodReqursive(jStr);
+            value = new MainProgram().TestMethod_1(jStr, jStr, jStr, jStr, jStr, jStr, jStr);
+            value = new MainProgram().TestMethod(jStr);
+
+            Main1();
+        }
+
+        public static void Main1()
+        {
+            while (true)
+            {
+                try
+                {
+                    string jStr = "xxx";
+                    Console.WriteLine("TestMethodReqursive");
+                    Console.ReadLine();
+                    string value = new MainProgram().TestMethodReqursive(jStr);
+                    Console.WriteLine(value);
+
+                    Console.WriteLine("TestMethod_1");
+                    Console.ReadLine();
+                    value = new MainProgram().TestMethod_1(jStr, jStr, jStr, jStr, jStr, jStr, jStr);
+                    Console.WriteLine(value);
+
+                    Console.WriteLine("TestMethod");
+                    Console.ReadLine();
+                    value = new MainProgram().TestMethod(jStr);
+                    Console.WriteLine(value);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex);
+                }
+            }
+        }
+
+        public static void Main2()
+        {
             for (int i = 0; i < 4; i++)
             {
                 Thread thread = new Thread((o) =>
@@ -18,25 +57,38 @@ namespace NetHook.TestInject
                     string indexStr = o.ToString();
                     int j = 0;
                     string value = null;
-
                     while (true)
                     {
-                        j++;
-                        string jStr = j.ToString();
-                        switch (indexStr)
+                        try
                         {
-                            case "0":
-                                value = TestMethodReqursive(jStr);
-                                break;
-                            case "1":
-                                value = TestMethod_1(jStr, jStr, jStr, jStr, jStr, jStr, jStr);
-                                break;
-                            default:
-                                value = TestMethod(jStr);
-                                break;
+                            Console.ReadLine();
+                            j++;
+                            string jStr = j.ToString();
+                            switch (indexStr)
+                            {
+                                case "0":
+                                    Console.WriteLine("TestMethodReqursive");
+                                    Console.ReadLine();
+                                    value = new MainProgram().TestMethodReqursive(jStr);
+                                    break;
+                                case "1":
+                                    Console.WriteLine("TestMethod_1");
+                                    Console.ReadLine();
+                                    value = new MainProgram().TestMethod_1(jStr, jStr, jStr, jStr, jStr, jStr, jStr);
+                                    break;
+                                default:
+                                    Console.WriteLine("TestMethod");
+                                    Console.ReadLine();
+                                    value = new MainProgram().TestMethod(jStr);
+                                    break;
+                            }
+                            Console.WriteLine(value);
+                            Thread.Sleep(i * 100 + 1000);
                         }
-                        Console.WriteLine(value);
-                        Thread.Sleep(i * 100 + 1000);
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine(ex);
+                        }
                     }
                 });
 
@@ -54,7 +106,7 @@ namespace NetHook.TestInject
             return value + " " + t + " " + Thread.CurrentThread.ManagedThreadId + " " + string.Join(" => ", new StackTrace().GetFrames().Select(x => x.GetMethod().Name).Reverse().ToArray());
         }
 
-        public static string TestMethod_1(string value, string value2, string value3, string value4, string value5, string value6, string value7)
+        public string TestMethod_1(string value, string value2, string value3, string value4, string value5, string value6, string value7)
         {
             return value + " " + Thread.CurrentThread.ManagedThreadId + " " + string.Join(" => ", new StackTrace().GetFrames().Select(x => x.GetMethod().Name).Reverse().ToArray());
         }

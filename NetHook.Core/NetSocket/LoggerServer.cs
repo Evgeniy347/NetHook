@@ -18,7 +18,7 @@ namespace NetHook.Cores.NetSocket
     public class LoggerServer : IDisposable
     {
         private MethodModelInfo[] _methodsHook;
-        private SocketServer _socketServer = new SocketServer();
+        private SocketServer _socketServer;
         private Thread _runTraceLog;
 
         public int CountConnection => _socketServer.CountConnection;
@@ -27,6 +27,7 @@ namespace NetHook.Cores.NetSocket
 
         public void StartServer()
         {
+            _socketServer = new SocketServer();
             _socketServer.StartServer();
 
             _socketServer.OnInitSocket += (s) =>
@@ -59,7 +60,7 @@ namespace NetHook.Cores.NetSocket
             {
                 Thread thread = _runTraceLog;
                 _runTraceLog = null;
-                thread.Join();
+                thread.Abort();
             }
         }
 

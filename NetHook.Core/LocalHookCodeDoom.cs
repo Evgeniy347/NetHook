@@ -53,10 +53,7 @@ namespace NetHook.Core
 
             bool isStatic = methodInfo.IsStatic;
 
-            method.Attributes =
-                MemberAttributes.Private | MemberAttributes.Static;
-
-            //method.CustomAttributes.Add(new CodeAttributeDeclaration(new CodeTypeReference(typeof(PrePrepareMethodAttribute))));
+            method.Attributes = MemberAttributes.Private | MemberAttributes.Static;
 
             var parameters = methodInfo.GetParameters();
 
@@ -76,7 +73,6 @@ namespace NetHook.Core
             method.Statements.Add(new CodeSnippetExpression("object value = IntPtr.Zero"));
             method.Statements.Add(new CodeSnippetExpression("Exception e = null"));
 
-
             if (isStatic)
                 method.Statements.Add(new CodeSnippetExpression("object thisObj = null"));
             else
@@ -86,18 +82,6 @@ namespace NetHook.Core
 
             CodeTryCatchFinallyStatement tryCatchFinaly = new CodeTryCatchFinallyStatement();
             method.Statements.Add(tryCatchFinaly);
-
-            //if (methodInfo.ReturnType != typeof(void))
-            //{
-            //    method.ReturnType = new CodeTypeReference(typeof(object));
-            //    tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"if (objectArray.Length > 0) value = {method.Name}({paramsStr})"));
-            //    tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"else value = {method.Name}({paramsStr})"));
-            //}
-            //else
-            //{
-            //    tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"if (objectArray.Length > 0) {method.Name}({paramsStr})"));
-            //    tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"else {method.Name}({paramsStr})"));
-            //}
 
             if (methodInfo.ReturnType != typeof(void))
             {
@@ -133,9 +117,10 @@ namespace NetHook.Core
 
         private void CreateConstructor(CodeTypeDeclaration targetClass, MethodInfo methodInfo)
         {
-            CodeConstructor constructor = new CodeConstructor();
-            constructor.Attributes =
-                MemberAttributes.Public | MemberAttributes.Final;
+            CodeConstructor constructor = new CodeConstructor
+            {
+                Attributes = MemberAttributes.Public | MemberAttributes.Final
+            };
 
             constructor.Parameters.Add(new CodeParameterDeclarationExpression(
                 typeof(LocalHookAdapter), "adapter"));
@@ -153,7 +138,11 @@ namespace NetHook.Core
         {
             using (CodeDomProvider provider = CodeDomProvider.CreateProvider("CSharp"))
             {
-                CompilerParameters options = new CompilerParameters();
+                CompilerParameters options = new CompilerParameters()
+                {
+                    //GenerateInMemory = true,
+                    IncludeDebugInformation = false,
+                };
 
                 string[] locations = AppDomain.CurrentDomain.GetAssemblies().Select(TryLocation)
                     .Where(x => !string.IsNullOrEmpty(x))

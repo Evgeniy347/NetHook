@@ -21,15 +21,15 @@ namespace NetHook.UI
     public partial class MainForm : Form
     {
         private RemoteInjector _remoteInjector;
-        private LoggerServer _server;
+        private LoggerServer _server = new LoggerServer();
         private ConcurrentStreamWriter _consoleStream = new ConcurrentStreamWriter();
+        private readonly ThreadsCollection _threadsCollection = new ThreadsCollection();
         public Process CurrentProcess { get; private set; }
         public ServerLogStatus ServerStatus { get; private set; }
 
         public MainForm()
         {
             InitializeComponent();
-            _server = new LoggerServer();
             _server.StartServer();
 
             ResizeFormHelper.Instance.AddResizeControl(dataGridView_Threads);
@@ -97,19 +97,21 @@ namespace NetHook.UI
 
         private void dataGridView_Threads_DoubleClick(object sender, EventArgs e)
         {
-            var row = dataGridView_Threads.SelectedRows.Cast<DataGridViewRow>().FirstOrDefault();
+            var row = dataGridView_Threads.SelectedRows.Cast<DataGridViewRowThread>().FirstOrDefault();
 
-            if (row == null || !_rowsThread.TryGetValue(row, out ThreadInfo threadInfo))
+            if (row?.ThreadInfo == null)
                 return;
 
             Thread thread = new Thread(() =>
             {
-                using (TraceLogForm form = new TraceLogForm(threadInfo))
+                using (TraceLogForm form = new TraceLogForm(row.ThreadInfo))
                 {
                     form.ShowDialog();
                 }
             });
 
+            thread.IsBackground = true;
+            thread.Name = "TraceLogForm";
             thread.SetApartmentState(ApartmentState.STA);
             thread.Start();
         }
@@ -128,17 +130,73 @@ namespace NetHook.UI
                     if (form.ResultValue == null)
                         return;
 
-                    _server.SetHook(form.ResultValue.ToArray());
-                    _server.ReceveTraceLog = null;
-                    _server.ReceveTraceLog = UpdateThreads;
-                    _server.RunTraceLog();
+                    if (form.ResultValue.Count > 0)
+                    {
+                        _server.SetHook(form.ResultValue.ToArray());
+                        _server.ReceveTraceLog = null;
+                        _server.ReceveTraceLog = UpdateThreads;
+                        _server.RunTraceLog();
+                    }
                 };
 
                 form.ShowDialog();
             }
         }
 
-        private readonly Dictionary<DataGridViewRow, ThreadInfo> _rowsThread = new Dictionary<DataGridViewRow, ThreadInfo>();
+
+        private class ThreadsCollection
+        {
+            private readonly Dictionary<int, DataGridViewRowThread> _threadIDs = new Dictionary<int, DataGridViewRowThread>();
+
+            public void AddOrUpdate(ThreadInfo threadInfo)
+            {
+                if (!_threadIDs.TryGetValue(threadInfo.ThreadID, out DataGridViewRowThread row))
+                    _threadIDs[threadInfo.ThreadID] = row = new DataGridViewRowThread();
+
+
+                row.Update(threadInfo);
+            }
+
+            public void AddOrUpdateRange(params ThreadInfo[] threads)
+            {
+                foreach (var thread in threads)
+                    AddOrUpdate(thread);
+            }
+
+            public DataGridViewRowThread[] ToRows()
+            {
+                return _threadIDs.Values.ToArray();
+            }
+        }
+
+        private class DataGridViewRowThread : DataGridViewRow
+        {
+            public ThreadInfo ThreadInfo { get; private set; }
+
+            public void Update(ThreadInfo thread)
+            {
+                if (ThreadInfo == null)
+                    CreateData();
+                ThreadInfo = thread;
+
+                TimeSpan timeSpan = thread.Frames.Select(x => x.Elapsed).Aggregate((x, y) => x.Add(y));
+
+                Cells[0].Value = thread.ThreadID;
+                Cells[1].Value = thread.ThreadState;
+                Cells[2].Value = thread.Frames.SelectRecursive(x => x.ChildFrames).Count();
+                Cells[3].Value = thread.Frames.FirstOrDefault().DateCreate;
+                Cells[4].Value = thread.Frames.FirstOrDefault().DateCreate.Add(timeSpan);
+                Cells[5].Value = timeSpan;
+                Cells[6].Value = "";
+                Cells[7].Value = thread.URL;
+            }
+
+            private void CreateData()
+            {
+                for (int i = 0; i < 8; i++)
+                    Cells.Add(new DataGridViewTextBoxCell());
+            }
+        }
 
         private void UpdateThreads(ThreadInfo[] threads)
         {
@@ -147,34 +205,12 @@ namespace NetHook.UI
             else if (ServerStatus == ServerLogStatus.OnlyRun)
                 ServerStatus = ServerLogStatus.Pause;
 
-            List<DataGridViewRow> rows = new List<DataGridViewRow>();
-            _rowsThread.Clear();
-
-            foreach (var thread in threads)
-            {
-                if (thread.Frames.Length > 0)
-                {
-                    TimeSpan timeSpan = thread.Frames.Select(x => x.Elapsed).Aggregate((x, y) => x.Add(y));
-
-                    DataGridViewRow row = new DataGridViewRow();
-                    row.Cells.Add(new DataGridViewTextBoxCell() { Value = thread.ThreadID });
-                    row.Cells.Add(new DataGridViewTextBoxCell() { Value = thread.ThreadState });
-                    row.Cells.Add(new DataGridViewTextBoxCell() { Value = thread.Frames.SelectRecursive(x => x.ChildFrames).Count() });
-                    row.Cells.Add(new DataGridViewTextBoxCell() { Value = thread.Frames.FirstOrDefault().DateCreate });
-                    row.Cells.Add(new DataGridViewTextBoxCell() { Value = thread.Frames.FirstOrDefault().DateCreate.Add(timeSpan) });
-                    row.Cells.Add(new DataGridViewTextBoxCell() { Value = timeSpan });
-                    row.Cells.Add(new DataGridViewTextBoxCell() { Value = "" });
-                    row.Cells.Add(new DataGridViewTextBoxCell() { Value = thread.URL });
-
-                    rows.Add(row);
-                    _rowsThread[row] = thread;
-                }
-            };
+            _threadsCollection.AddOrUpdateRange(threads);
 
             this.Invoke(() =>
             {
                 this.dataGridView_Threads.Rows.Clear();
-                this.dataGridView_Threads.Rows.AddRange(rows.ToArray());
+                this.dataGridView_Threads.Rows.AddRange(_threadsCollection.ToRows());
             });
         }
 
@@ -212,6 +248,7 @@ namespace NetHook.UI
                 }
             });
 
+            thread.Name = "LogConsoleThread";
             thread.SetApartmentState(ApartmentState.STA);
             thread.Start();
         }

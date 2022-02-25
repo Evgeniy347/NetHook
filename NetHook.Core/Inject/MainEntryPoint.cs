@@ -59,6 +59,8 @@ namespace NetHook.Cores.Inject
         {
             try
             {
+                SocketExtensions.DisableLog();
+
                 using (DuplexSocketClient duplexSocket = new DuplexSocketClient())
                 {
                     Thread.CurrentThread.Name = "MainEntryPoint";

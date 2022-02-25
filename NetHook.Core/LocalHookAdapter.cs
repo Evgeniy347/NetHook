@@ -1,7 +1,9 @@
 ﻿using NetHook.Cores.Inject;
+using SharpDisasm;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -32,14 +34,22 @@ namespace NetHook.Core
 
         public void Install(StringBuilder stringBuilder = null)
         {
+            string raw = CodeDoomProvider.Save();
+            string path = Path.Combine(Path.GetDirectoryName(typeof(LocalHookAdapter).Assembly.Location), "raw.cs");
+            File.WriteAllText(path, raw);
+
             Assembly assembly = CodeDoomProvider.Compiller();
             CodeDoomProvider.Clear();
             UnInstall();
 
-            foreach (Type type in assembly.GetTypes().Where(x => typeof(LocalHookRuntimeInstance).IsAssignableFrom(x)))
+            foreach (Type type in assembly.GetTypes().Where(x => typeof(LocalHookRuntimeInstance).AssemblyQualifiedName == x.BaseType.AssemblyQualifiedName))
             {
-                LocalHookRuntimeInstance provider = (LocalHookRuntimeInstance)Activator.CreateInstance(type, new object[] { this });
-                string log = CreateHook(provider.Method, provider.MethodHook);
+                object provider = Activator.CreateInstance(type, new object[] { this });
+
+                MethodInfo method = provider.GetProperty<MethodInfo>("Method");
+                MethodInfo methodHook = provider.GetProperty<MethodInfo>("MethodHook");
+
+                string log = CreateHook(method, methodHook);
                 if (stringBuilder != null)
                     stringBuilder.AppendLine(log);
             }
@@ -106,11 +116,13 @@ namespace NetHook.Core
 
                 methodHookBody.FindAndReplaceCall(newmem.EndAddress);
 
+                //CheckBody(methodBody.GetOriginalInstruction(methodBody.Size), methodHookBody.GetOriginalInstruction(methodBody.Size));
+
                 newmem.Add(origBody);
                 methodBody.CheckNop(origBody.Length);
                 newmem.AddJMP(methodBody.Address.Add(origBody.Length));
 
-                stringBuilder.AppendLine("Method Body");
+                stringBuilder.AppendLine($"Method Body {method}");
                 stringBuilder.AppendLine(methodBody.WriteLog());
                 stringBuilder.AppendLine("New Memory");
                 stringBuilder.AppendLine(newmem.WriteLog(false));
@@ -124,6 +136,20 @@ namespace NetHook.Core
             }
 
             return stringBuilder.ToString();
+        }
+
+        private void CheckBody(IEnumerable<Instruction> origBody, IEnumerable<Instruction> methodHookBody)
+        {
+            IEnumerator<Instruction> methodHookBodyEnumerator = methodHookBody.GetEnumerator();
+            IEnumerator<Instruction> origBodyEnumerator = origBody.GetEnumerator();
+
+            while (true)
+            {
+                methodHookBodyEnumerator.MoveNext();
+                origBodyEnumerator.MoveNext();
+                if (methodHookBodyEnumerator.Current.ToString() != origBodyEnumerator.Current.ToString())
+                    throw new Exception($"{methodHookBodyEnumerator.Current} != {origBodyEnumerator.Current}");
+            }
         }
 
         public static bool CheckMethod(MethodInfo method, bool throwNewEx = true)
@@ -305,6 +331,5 @@ namespace NetHook.Core
 
             return temp;
         }
-
     }
 }

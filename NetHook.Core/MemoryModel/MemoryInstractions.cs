@@ -45,6 +45,11 @@ namespace NetHook.Core
 
         public byte[] GetOriginalBody(int length)
         {
+            return _memory.GetOrigBytes(Address, length);
+        }
+
+        public IEnumerable<Instruction> GetOriginalInstruction(int length)
+        {
             return _memory.GetOrigInstraction(Address, length);
         }
 
@@ -59,6 +64,11 @@ namespace NetHook.Core
         {
             var result = FindAndReplaceCall(_memory, Address, address);
             Add(result);
+        }
+
+        public byte[] ReadBytes(int size)
+        {
+            return _memory.GetOrigBytes(Address, size);
         }
 
         public static byte[] FindAndReplaceCall(Memory memory, IntPtr methodAddress, IntPtr newMethod)

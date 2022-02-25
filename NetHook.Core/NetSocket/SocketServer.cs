@@ -45,7 +45,7 @@ namespace NetHook.Cores.NetSocket
                  {
                      Console.WriteLine($"StartServer Start {Address}");
                      _listener.SetDefaultProperty();
-                     while (true)
+                     while (!_disposed)
                      {
                          try
                          {
@@ -173,7 +173,6 @@ namespace NetHook.Cores.NetSocket
         {
             _disposed = true;
             _listener.Dispose();
-            _serverThread.Join();
 
             foreach (var keyValue in _serverListenThreads)
             {

@@ -12,10 +12,15 @@ namespace NetHook.Cores.Extensions
 {
     public static class SocketExtensions
     {
+        private static bool _enableLog = true;
+        public static void DisableLog()
+        {
+            _enableLog = false;
+        }
 
         public static void SetDefaultProperty(this Socket socket)
         {
-            socket.ReceiveTimeout = 1000;
+            socket.ReceiveTimeout = int.MaxValue;
             socket.ReceiveBufferSize = int.MaxValue;
             socket.SendBufferSize = int.MaxValue;
         }
@@ -38,11 +43,13 @@ namespace NetHook.Cores.Extensions
             if (method != null && result.MethodName != method)
                 throw new Exception($"Check Method '{method}' {Environment.NewLine}{message}");
 
-            Console.WriteLine($"Port:{socket.GetKey()} AcceptMessage:{result} SocketElapsed {stopwatch.Elapsed}");
+            if (_enableLog)
+                Console.WriteLine($"Port:{socket.GetKey()} AcceptMessage:{result} SocketElapsed {stopwatch.Elapsed}");
 
             if (result.ID <= 0)
             {
-                Console.WriteLine(message);
+                if (_enableLog)
+                    Console.WriteLine(message);
                 throw new ArgumentException(nameof(result.ID));
             }
             return result;
@@ -79,16 +86,17 @@ namespace NetHook.Cores.Extensions
 
         public static bool IsSocketConnected(this Socket socket)
         {
-            lock (socket)
+            try
             {
-                try
-                {
+                //if (Monitor.TryEnter(socket))
+                lock (socket)
                     return !((socket.Poll(1000, SelectMode.SelectRead) && (socket.Available == 0)) || !socket.Connected);
-                }
-                catch
-                {
-                    return false;
-                }
+
+                //return socket.Connected;
+            }
+            catch
+            {
+                return false;
             }
         }
 
@@ -122,7 +130,8 @@ namespace NetHook.Cores.Extensions
             }
             finally
             {
-                Console.WriteLine($"Port:{socket.GetKey()} SendMessage:{message} SocketElapsed {stopwatch.Elapsed}");
+                if (_enableLog)
+                    Console.WriteLine($"Port:{socket.GetKey()} SendMessage:{message} SocketElapsed {stopwatch.Elapsed}");
             }
         }
 

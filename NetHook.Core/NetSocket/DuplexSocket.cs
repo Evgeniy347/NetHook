@@ -38,7 +38,6 @@ namespace NetHook.Cores.NetSocket
                 MessageSocket message = _connectedSocketListener.AcceptMessage();
                 if (message.TypeMessage == TypeMessage.Request)
                 {
-                    Console.WriteLine(message.MethodName);
                     _processRequest.Enqueue(() => RunProcessHandler(message));
                     _autoResetRequest.Set();
                 }

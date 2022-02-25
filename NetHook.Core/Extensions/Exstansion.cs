@@ -6,12 +6,23 @@ using System.Reflection;
 
 namespace NetHook.Core
 {
-    public static class Exstansion
+    public static class Exstension
     {
         public static bool HasFlag(this BindingFlags source, BindingFlags flag)
         {
             return (source & flag) == flag;
 
+        }
+
+        public static TResult GetProperty<TResult>(this object obj, string name)
+        {
+            if (obj == null)
+                throw new ArgumentNullException(nameof(obj));
+
+            Type type = obj.GetType();
+            PropertyInfo property = type.GetProperty(name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+
+            return (TResult)property.GetValue(obj, null);
         }
 
         public static IEnumerable<T> SelectRecursive<T>(this IEnumerable<T> items, Func<T, IEnumerable<T>> childSelector)
@@ -79,7 +90,7 @@ namespace NetHook.Core
 
         public static IntPtr GetAddressBody(this Memory memory, IntPtr address)
         {
-            var origInstractions = memory.GetOrigInstraction(address, 5);
+            var origInstractions = memory.GetOrigBytes(address, 5);
 
             if (origInstractions != null && origInstractions[0] == 0xE9)
                 address = address.JmpToOffcet(origInstractions);
@@ -123,7 +134,7 @@ namespace NetHook.Core
         }
 
 
-        public static byte[] GetOrigInstraction(this Memory memory, IntPtr methodAddress, int length)
+        public static byte[] GetOrigBytes(this Memory memory, IntPtr methodAddress, int length)
         {
             int i = 0;
 
@@ -143,6 +154,21 @@ namespace NetHook.Core
                   .ToArray();
 
             return result;
+        }
+
+        public static IEnumerable<Instruction> GetOrigInstraction(this Memory memory, IntPtr methodAddress, int length)
+        {
+            int i = 0;
+
+            foreach (var instruct in memory.GetInstruction(methodAddress))
+            {
+                i += instruct.Length;
+
+                yield return instruct;
+
+                if (i >= length)
+                    break;
+            }
         }
 
         public static IEnumerable<Instruction> GetInstruction(this Memory memory, IntPtr methodAddress)

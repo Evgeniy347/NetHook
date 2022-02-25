@@ -14,7 +14,10 @@ namespace NetHook.MSTest
 {
     public static class Helpers
     {
-        public static void TestInvoke<TInstance, TResult, TArgument>(Action testAction, int iterInvoke, params MethodInfo[] methods)
+        public static void TestInvoke<TInstance, TResult, TArgument>(Action testAction, int iterInvoke, params MethodInfo[] methods) =>
+            TestInvoke<TInstance, TResult, TArgument>(testAction, iterInvoke, 1, methods);
+
+        public static void TestInvoke<TInstance, TResult, TArgument>(Action testAction, int iterInvoke, int countArgs, params MethodInfo[] methods)
         {
             HashSet<object> beforeObj = new HashSet<object>();
             HashSet<object> afterObj = new HashSet<object>();
@@ -49,7 +52,7 @@ namespace NetHook.MSTest
                         Assert.AreEqual(beforeObj.Add(y), true);
                     }
 
-                    Assert.AreEqual(z.Length, 1);
+                    Assert.AreEqual(z.Length, countArgs);
                     Assert.IsInstanceOfType(z[0], typeof(TArgument));
 
                     countBefore++;

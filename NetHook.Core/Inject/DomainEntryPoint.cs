@@ -27,6 +27,8 @@ namespace NetHook.Cores.Inject
 
         public void InjectDomain(string address)
         {
+            SocketExtensions.DisableLog();
+
             Thread thread = new Thread(() =>
             {
                 try
@@ -162,7 +164,14 @@ namespace NetHook.Cores.Inject
                 }
             }
 
-            adapter.Install(Log);
+            try
+            {
+                adapter.Install(Log);
+            }
+            catch (Exception ex)
+            {
+                WriteLine(ex.ToString());
+            }
         }
 
         public static DomainModelInfo GetDomainInfo()
@@ -291,7 +300,7 @@ namespace NetHook.Cores.Inject
                 ThreadID = thread.ManagedThreadId,
                 ThreadState = thread.ThreadState,
                 Frames = frames.Select(x => ConvertFrame(x)).ToArray(),
-                URL = frames.FirstOrDefault(x => x.URL != null).URL,
+                URL = frames.FirstOrDefault(x => x?.URL != null)?.URL,
             };
 
             return resilt;
