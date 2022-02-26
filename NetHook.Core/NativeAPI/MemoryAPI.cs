@@ -22,6 +22,13 @@ namespace NetHook.Core
 
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern IntPtr VirtualAllocEx(IntPtr hProcess, IntPtr lpAddress, int dwSize, AllocType flAllocationType, Protect flProtect);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern IntPtr VirtualAlloc(IntPtr lpAddress, int dwSize, AllocType flAllocationType, Protect flProtect);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern IntPtr VirtualAlloc2(IntPtr hProcess, IntPtr lpAddress, int dwSize, AllocType flAllocationType, Protect flProtect);
+
         [DllImport("kernel32.dll")]
         public static extern bool VirtualFreeEx(IntPtr hProcess, IntPtr lpAddress, int dwSize, FreeType dwFreeType);
 

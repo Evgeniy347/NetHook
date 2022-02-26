@@ -35,7 +35,22 @@ namespace NetHook.Core
 
         public byte[] ToArray()
         {
-            return _frameInstractions.SelectMany(x => x.Value).ToArray();
+            byte[] res = _frameInstractions.SelectMany(x => x.Value).ToArray();
+
+            if (_maxSize > 0)
+            {
+                byte[] result = new byte[_maxSize];
+
+                for (int i = 0; i < res.Length; i++)
+                    result[i] = res[i];
+
+                for (int i = res.Length; i < _maxSize; i++)
+                    result[i] = 0x90;
+
+                res = result;
+            }
+
+            return res;
         }
 
         public int GetOffset(FrameInstractions frameInstractions)
@@ -60,15 +75,75 @@ namespace NetHook.Core
             return jmp;
         }
 
+        public byte[] AddJMP(long address)
+        {
+            var jmp = EndAddress.Jmp(address);
+            Add(jmp);
+            return jmp;
+        }
+
+        public byte[] AddJMP(int address)
+        {
+            var jmp = EndAddress.Jmp(address);
+            Add(jmp);
+            return jmp;
+        }
+
         public void FindAndReplaceCall(IntPtr address)
         {
             var result = FindAndReplaceCall(_memory, Address, address);
             Add(result);
         }
 
+        public void InjectOrig(byte[] origByte, IntPtr to)
+        {
+            var result = InjectOrig(_memory, Address, origByte, to);
+            Add(result);
+        }
+
         public byte[] ReadBytes(int size)
         {
             return _memory.GetOrigBytes(Address, size);
+        }
+
+        public static byte[] InjectOrig(Memory memory, IntPtr methodAddress, byte[] origByte, IntPtr to)
+        {
+            List<byte[]> resultInstruction = new List<byte[]>();
+            int i = 0;
+            Instruction[] instructions = memory.GetInstruction(methodAddress).ToArray();
+
+            Instruction[][] callInstructionsGroups = instructions.Reverse()
+                .Where(x => x.Mnemonic == SharpDisasm.Udis86.ud_mnemonic_code.UD_Icall)
+                .GroupBy(x => x.ToString())
+                .Where(x => x.Count() == 16)
+                .Select(x => x.ToArray())
+                .ToArray();
+
+            Instruction[] callInstructions = callInstructionsGroups.Single().Reverse().ToArray();
+
+            Instruction firstInstruction = callInstructions.First();
+            Instruction lastInstruction = callInstructions.Last();
+            IntPtr addressNewMem = methodAddress.Add(instructions.TakeWhile(x => x != firstInstruction).Select(x => x.Length).Sum());
+            int size = (int)(lastInstruction.Offset - firstInstruction.Offset);
+
+            resultInstruction.AddRange(instructions.TakeWhile(x => x != firstInstruction).Select(x => x.Bytes));
+
+            MemoryInstractions memoryInstractions = new MemoryInstractions(addressNewMem, memory, size);
+
+            memoryInstractions.Add(addressNewMem.Call(addressNewMem.Add(10)));
+            memoryInstractions.AddJMP(new IntPtr((long)lastInstruction.Offset + 5));
+            memoryInstractions.Add(origByte);
+            memoryInstractions.AddJMP(to);
+
+            resultInstruction.Add(memoryInstractions.ToArray());
+
+            resultInstruction.AddRange(instructions.SkipWhile(x => x != lastInstruction).Select(x => x.Bytes));
+
+            byte[] result = resultInstruction
+                  .SelectMany(x => x)
+                  .ToArray();
+
+            return result;
         }
 
         public static byte[] FindAndReplaceCall(Memory memory, IntPtr methodAddress, IntPtr newMethod)
@@ -80,7 +155,7 @@ namespace NetHook.Core
             Instruction[][] callInstructionsGroups = instructions.Reverse()
                 .Where(x => x.Mnemonic == SharpDisasm.Udis86.ud_mnemonic_code.UD_Icall)
                 .GroupBy(x => x.ToString())
-                .Where(x => x.Count() == 5)
+                .Where(x => x.Count() == 16)
                 .Select(x => x.ToArray())
                 .ToArray();
 
@@ -151,7 +226,7 @@ namespace NetHook.Core
 
         public string WriteLog(bool whithOriginal = true)
         {
-            var original = whithOriginal ? _memory.Read(Address, Size) : new byte[0];
+            var original = whithOriginal ? _memory.Read(Address, _maxSize > 0 ? _maxSize : Size) : new byte[0];
             return WriteLines(original, ToArray(), Address);
         }
 
@@ -207,6 +282,7 @@ namespace NetHook.Core
 
             return valueOrig;
         }
+
 
         private static string GetAddress(IntPtr address, bool addAddress, Instruction x, ref int i)
         {

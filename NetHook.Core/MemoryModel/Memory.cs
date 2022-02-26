@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NetHook.Cores.Extensions;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -27,8 +28,8 @@ namespace NetHook.Core
             ReadProcess = process;
 
             ProcessAccessType access = ProcessAccessType.PROCESS_VM_READ
-         | ProcessAccessType.PROCESS_VM_WRITE
-         | ProcessAccessType.PROCESS_VM_OPERATION;
+            | ProcessAccessType.PROCESS_VM_WRITE
+            | ProcessAccessType.PROCESS_VM_OPERATION;
             m_hProcess = MemoryAPI.OpenProcess((uint)access, 1, (uint)process.Id);
         }
 
@@ -38,7 +39,7 @@ namespace NetHook.Core
                 return;
 
             if (!MemoryAPI.CloseHandle(m_hProcess))
-                throw new Win32Exception("CloseHandle Failed");
+                throw new Win32APIException("CloseHandle Failed");
         }
 
         public byte[] Read(IntPtr MemoryAddress, int bytesToRead)
@@ -85,30 +86,30 @@ namespace NetHook.Core
             IntPtr injector = MemoryAPI.GetProcAddress(MemoryAPI.GetModuleHandle("kernel32.dll"), "LoadLibraryA");
 
             if (injector == null)
-                throw new Win32Exception("Injecto Error!");
+                throw new Win32APIException("Injecto Error!");
 
             IntPtr hThread = MemoryAPI.CreateRemoteThread(m_hProcess, (IntPtr)null, 0, injector, allocMem, 0, out uint bytesout2);
             if (hThread == IntPtr.Zero)
-                throw new Win32Exception("Thread injection Failed");
+                throw new Win32APIException("Thread injection Failed");
 
             IntPtr result = MemoryAPI.WaitForSingleObject(hThread, 10 * 1000);
             if (result == new IntPtr(0x00000080L) || result == new IntPtr(0x00000102L) || result == new IntPtr(0xFFFFFFFF))
-                throw new Win32Exception("Thread 2 inject failed");
+                throw new Win32APIException("Thread 2 inject failed");
 
             Thread.Sleep(1000);
             MemoryAPI.VirtualFreeEx(m_hProcess, allocMem, 0, FreeType.Release);
 
             var h = MemoryAPI.GetModuleHandle("NetHook.Core.exe");
             if (h == IntPtr.Zero)
-                throw new Win32Exception();
+                throw new Win32APIException();
 
             IntPtr injectorMain = MemoryAPI.GetProcAddress(h, "Main2");
             if (injectorMain == IntPtr.Zero)
-                throw new Win32Exception();
+                throw new Win32APIException();
 
             IntPtr hThread2 = MemoryAPI.CreateRemoteThread(m_hProcess, (IntPtr)null, 0, injectorMain, IntPtr.Zero, 0, out uint bytesout23);
             if (hThread2 == IntPtr.Zero)
-                throw new Win32Exception("Thread injection Failed");
+                throw new Win32APIException("Thread injection Failed");
 
             var t2 = Process.GetProcessById(ReadProcess.Id).Modules.Cast<ProcessModule>().Select(x => x.ModuleName).ToArray();
 
@@ -119,13 +120,13 @@ namespace NetHook.Core
         {
             IntPtr hThread = MemoryAPI.CreateRemoteThread(m_hProcess, (IntPtr)null, 0, address, IntPtr.Zero, 0, out uint bytesout);
             if (hThread == IntPtr.Zero)
-                throw new Win32Exception("Thread injection Failed");
+                throw new Win32APIException("Thread injection Failed");
         }
 
         private static void WriteError()
         {
             int error = Marshal.GetLastWin32Error();
-            Console.WriteLine($"error: {error} message:{new Win32Exception(error).Message}");
+            Console.WriteLine($"error: {error} message:{new Win32APIException(error).Message}");
         }
 
         public byte[] PointerRead(IntPtr MemoryAddress, int bytesToRead, int[] Offset, out int bytesRead)
@@ -180,7 +181,7 @@ namespace NetHook.Core
         {
             IntPtr ptrBytesWritten;
             if (!MemoryAPI.WriteProcessMemory(m_hProcess, MemoryAddress, bytesToWrite, (uint)bytesToWrite.Length, out ptrBytesWritten))
-                throw new Win32Exception();
+                throw new Win32APIException();
             bytesWritten = ptrBytesWritten.ToInt32();
         }
 
@@ -230,10 +231,11 @@ namespace NetHook.Core
 
         public IntPtr Alloc(int size, IntPtr adress = default)
         {
-            IntPtr result = MemoryAPI.VirtualAllocEx(m_hProcess, adress, size, AllocType.Commit, Protect.ExecuteReadWrite);
-
+            IntPtr result = MemoryAPI.VirtualAllocEx(m_hProcess, IntPtr.Zero, size, AllocType.Commit | AllocType.Reserve, Protect.ExecuteReadWrite);
+            //IntPtr result = MemoryAPI.VirtualAllocEx(m_hProcess, adress, size, AllocType.Commit | AllocType.Reserve, Protect.ExecuteReadWrite);
+            //IntPtr result = MemoryAPI.VirtualAlloc2(m_hProcess, adress, size, AllocType.Commit | AllocType.Reserve, Protect.ExecuteReadWrite);
             if (result == IntPtr.Zero)
-                throw new Win32Exception();
+                throw new Win32APIException();
 
             return result;
         }

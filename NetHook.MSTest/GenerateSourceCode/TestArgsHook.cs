@@ -32,10 +32,21 @@ namespace LocalHookProviders
             LocalHookAdapter.Current.BeginInvoke("NetHook.MSTest.UnitTestLocalHook+TestInstance, NetHook.MSTest, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null;TestInstanceMethodArgs", thisObj, objectArray);
             try
             {
-                if (objectArray.Length == 0) value = TestInstanceMethodArgs_Hook(thisObj, arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8, arg_9);
-                else if (objectArray.Length == 1) value = TestInstanceMethodArgs_Hook(thisObj, arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8, arg_9);
-                else if (objectArray.Length == 2) value = TestInstanceMethodArgs_Hook(thisObj, arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8, arg_9);
-                else if (objectArray.Length == 3) value = TestInstanceMethodArgs_Hook(thisObj, arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8, arg_9);
+                if (objectArray.Length >= 0) value = TestInstanceMethodArgs_Hook(thisObj, arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8, arg_9);
+                else if (objectArray.Length == -1) value = TestInstanceMethodArgs_Hook(thisObj, arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8, arg_9);
+                else if (objectArray.Length == -2) value = TestInstanceMethodArgs_Hook(thisObj, arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8, arg_9);
+                else if (objectArray.Length == -3) value = TestInstanceMethodArgs_Hook(thisObj, arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8, arg_9);
+                else if (objectArray.Length == -4) value = TestInstanceMethodArgs_Hook(thisObj, arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8, arg_9);
+                else if (objectArray.Length == -5) value = TestInstanceMethodArgs_Hook(thisObj, arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8, arg_9);
+                else if (objectArray.Length == -6) value = TestInstanceMethodArgs_Hook(thisObj, arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8, arg_9);
+                else if (objectArray.Length == -7) value = TestInstanceMethodArgs_Hook(thisObj, arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8, arg_9);
+                else if (objectArray.Length == -8) value = TestInstanceMethodArgs_Hook(thisObj, arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8, arg_9);
+                else if (objectArray.Length == -9) value = TestInstanceMethodArgs_Hook(thisObj, arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8, arg_9);
+                else if (objectArray.Length == -10) value = TestInstanceMethodArgs_Hook(thisObj, arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8, arg_9);
+                else if (objectArray.Length == -11) value = TestInstanceMethodArgs_Hook(thisObj, arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8, arg_9);
+                else if (objectArray.Length == -12) value = TestInstanceMethodArgs_Hook(thisObj, arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8, arg_9);
+                else if (objectArray.Length == -13) value = TestInstanceMethodArgs_Hook(thisObj, arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8, arg_9);
+                else if (objectArray.Length == -14) value = TestInstanceMethodArgs_Hook(thisObj, arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8, arg_9);
                 else value = TestInstanceMethodArgs_Hook(thisObj, arg_0, arg_1, arg_2, arg_3, arg_4, arg_5, arg_6, arg_7, arg_8, arg_9);
             }
             catch (System.Exception ex)

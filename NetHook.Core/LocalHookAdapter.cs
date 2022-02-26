@@ -77,7 +77,7 @@ namespace NetHook.Core
 
         public MemoryInstractions Alloc(IntPtr address)
         {
-            var newmem = Memory.Alloc(0x100, address);
+            var newmem = Memory.Alloc(0x40, address);
 
             if (!_memories.TryGetValue(newmem, out MemoryInstractions memInstractions))
                 _memories[newmem] = memInstractions = new MemoryInstractions(newmem, Memory, 0x100);
@@ -102,7 +102,6 @@ namespace NetHook.Core
                 stringBuilder.AppendLine($"methodAddress     {methodAddress.ToHex()} {Memory.GetAddressBody(methodAddress).ToHex()}");
                 stringBuilder.AppendLine($"methodAddressHook {methodAddressHook.ToHex()} {Memory.GetAddressBody(methodAddressHook).ToHex()}");
 
-                var newmem = Alloc(methodAddress);
 
                 var methodBody = GetMethodBody(methodAddress);
                 var methodHookBody = GetMethodBody(methodAddressHook);
@@ -114,18 +113,16 @@ namespace NetHook.Core
 
                 byte[] origBody = methodBody.GetOriginalBody(methodBody.Size);
 
-                methodHookBody.FindAndReplaceCall(newmem.EndAddress);
+                methodHookBody.InjectOrig(origBody, methodBody.Address.Add(origBody.Length));
 
                 //CheckBody(methodBody.GetOriginalInstruction(methodBody.Size), methodHookBody.GetOriginalInstruction(methodBody.Size));
 
-                newmem.Add(origBody);
                 methodBody.CheckNop(origBody.Length);
-                newmem.AddJMP(methodBody.Address.Add(origBody.Length));
 
                 stringBuilder.AppendLine($"Method Body {method}");
                 stringBuilder.AppendLine(methodBody.WriteLog());
                 stringBuilder.AppendLine("New Memory");
-                stringBuilder.AppendLine(newmem.WriteLog(false));
+                //stringBuilder.AppendLine(newmem.WriteLog(false));
                 stringBuilder.AppendLine("Method Body Hook");
                 stringBuilder.AppendLine(methodHookBody.WriteLog());
             }

@@ -33,10 +33,21 @@ namespace LocalHookProviders
             LocalHookAdapter.Current.BeginInvoke("NetHook.MSTest.UnitTestLocalHook+TestInstance, NetHook.MSTest, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null;TestStaticMethod", thisObj, objectArray);
             try
             {
-                if (objectArray.Length == 0) value = TestStaticMethod_Hook(arg_0);
-                else if (objectArray.Length == 1) value = TestStaticMethod_Hook(arg_0);
-                else if (objectArray.Length == 2) value = TestStaticMethod_Hook(arg_0);
-                else if (objectArray.Length == 3) value = TestStaticMethod_Hook(arg_0);
+                if (objectArray.Length >= 0) value = TestStaticMethod_Hook(arg_0);
+                else if (objectArray.Length == -1) value = TestStaticMethod_Hook(arg_0);
+                else if (objectArray.Length == -2) value = TestStaticMethod_Hook(arg_0);
+                else if (objectArray.Length == -3) value = TestStaticMethod_Hook(arg_0);
+                else if (objectArray.Length == -4) value = TestStaticMethod_Hook(arg_0);
+                else if (objectArray.Length == -5) value = TestStaticMethod_Hook(arg_0);
+                else if (objectArray.Length == -6) value = TestStaticMethod_Hook(arg_0);
+                else if (objectArray.Length == -7) value = TestStaticMethod_Hook(arg_0);
+                else if (objectArray.Length == -8) value = TestStaticMethod_Hook(arg_0);
+                else if (objectArray.Length == -9) value = TestStaticMethod_Hook(arg_0);
+                else if (objectArray.Length == -10) value = TestStaticMethod_Hook(arg_0);
+                else if (objectArray.Length == -11) value = TestStaticMethod_Hook(arg_0);
+                else if (objectArray.Length == -12) value = TestStaticMethod_Hook(arg_0);
+                else if (objectArray.Length == -13) value = TestStaticMethod_Hook(arg_0);
+                else if (objectArray.Length == -14) value = TestStaticMethod_Hook(arg_0);
                 else value = TestStaticMethod_Hook(arg_0);
             }
             catch (System.Exception ex)

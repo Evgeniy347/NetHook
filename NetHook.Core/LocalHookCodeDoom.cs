@@ -83,23 +83,33 @@ namespace NetHook.Core
             CodeTryCatchFinallyStatement tryCatchFinaly = new CodeTryCatchFinallyStatement();
             method.Statements.Add(tryCatchFinaly);
 
+            string invokeStr = null;
             if (methodInfo.ReturnType != typeof(void))
             {
                 method.ReturnType = new CodeTypeReference(typeof(object));
-                tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"if (objectArray.Length == 0) value = {method.Name}({paramsStr})"));
-                tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"else if (objectArray.Length == 1) value = {method.Name}({paramsStr})"));
-                tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"else if (objectArray.Length == 2) value = {method.Name}({paramsStr})"));
-                tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"else if (objectArray.Length == 3) value = {method.Name}({paramsStr})"));
-                tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"else value = {method.Name}({paramsStr})"));
+                invokeStr = $"value = {method.Name}({paramsStr})"; ;
             }
             else
             {
-                tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"if (objectArray.Length == 0) {method.Name}({paramsStr})"));
-                tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"else if (objectArray.Length == 1) {method.Name}({paramsStr})"));
-                tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"else if (objectArray.Length == 2) {method.Name}({paramsStr})"));
-                tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"else if (objectArray.Length == 3) {method.Name}({paramsStr})"));
-                tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"else {method.Name}({paramsStr})"));
+                invokeStr = $"{method.Name}({paramsStr})";
             }
+
+            tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"if (objectArray.Length >= 0) {invokeStr}"));
+            tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"else if (objectArray.Length == -1) {invokeStr}"));
+            tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"else if (objectArray.Length == -2) {invokeStr}"));
+            tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"else if (objectArray.Length == -3) {invokeStr}"));
+            tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"else if (objectArray.Length == -4) {invokeStr}"));
+            tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"else if (objectArray.Length == -5) {invokeStr}"));
+            tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"else if (objectArray.Length == -6) {invokeStr}"));
+            tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"else if (objectArray.Length == -7) {invokeStr}"));
+            tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"else if (objectArray.Length == -8) {invokeStr}"));
+            tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"else if (objectArray.Length == -9) {invokeStr}"));
+            tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"else if (objectArray.Length == -10) {invokeStr}"));
+            tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"else if (objectArray.Length == -11) {invokeStr}"));
+            tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"else if (objectArray.Length == -12) {invokeStr}"));
+            tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"else if (objectArray.Length == -13) {invokeStr}"));
+            tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"else if (objectArray.Length == -14) {invokeStr}"));
+            tryCatchFinaly.TryStatements.Add(new CodeSnippetExpression($"else {invokeStr}"));
 
             CodeCatchClause catchEx = new CodeCatchClause("ex", new CodeTypeReference(typeof(Exception)));
             tryCatchFinaly.CatchClauses.Add(catchEx);

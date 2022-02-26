@@ -69,12 +69,22 @@ namespace NetHook.Core
 
         public static byte[] Jmp(this IntPtr from, IntPtr to)
         {
-            long offset = (long)to - (long)from - 5;
+            return Jmp(from, (long)to);
+        }
+
+        public static byte[] Jmp(this IntPtr from, int to)
+        {
+            return Jmp(from, (long)to);
+        }
+
+        public static byte[] Jmp(this IntPtr from, long to)
+        {
+            long offset = to - (long)from - 5;
 
             if (offset > int.MaxValue || offset < int.MinValue)
             {
-                Console.WriteLine(from.ToInt64());
-                Console.WriteLine(to.ToInt64());
+                Console.WriteLine(from.ToHex());
+                Console.WriteLine(to.ToHex());
                 throw new ArgumentOutOfRangeException("offset is not 4 bytes");
             }
 
@@ -94,7 +104,7 @@ namespace NetHook.Core
 
             if (origInstractions != null && origInstractions[0] == 0xE9)
                 address = address.JmpToOffcet(origInstractions);
-            ((System.Action)(() => { }))();
+
             return address;
         }
 
@@ -265,7 +275,6 @@ namespace NetHook.Core
 
         public static IntPtr Add(this IntPtr value, params long[] adds) =>
            value.Add(adds.Select(x => new IntPtr(x)).ToArray());
-
 
         public static IntPtr Add(this IntPtr value, params int[] adds) =>
            value.Add(adds.Select(x => new IntPtr(x)).ToArray());

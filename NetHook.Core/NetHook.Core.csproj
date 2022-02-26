@@ -82,6 +82,7 @@
   <ItemGroup>
     <Compile Include="Extensions\SerializerExtension.cs" />
     <Compile Include="Extensions\SocketExtensions.cs" />
+    <Compile Include="Extensions\Win32APIException.cs" />
     <Compile Include="Handlers\ActionHandler.cs" />
     <Compile Include="Handlers\Addr.cs" />
     <Compile Include="Extensions\StringExtensions.cs" />
