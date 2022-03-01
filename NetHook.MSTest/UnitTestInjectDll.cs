@@ -15,6 +15,7 @@ namespace NetHook.MSTest
         [TestMethod]
         public void TestInjectDLL()
         {
+            //sd
             //string path = typeof(NetHook.TestInject.MainProgram).Assembly.Location;
 
             //Process process = Process.Start(path);
