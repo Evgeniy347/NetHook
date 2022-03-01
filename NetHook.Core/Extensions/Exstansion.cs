@@ -47,18 +47,30 @@ namespace NetHook.Core
         {
             long offset = (long)to - (long)from - 5;
 
-            if (offset > int.MaxValue || offset < int.MinValue)
-            {
-                throw new ArgumentOutOfRangeException($"offset is not 4 bytes from:{from.ToInt64()} to:{to.ToInt64()}");
-            }
+            //if (offset > int.MaxValue || offset < int.MinValue)
+            //{
+            byte[] result = new byte[12];
+            result[0] = 0x48;
+            result[1] = 0xB8;
 
-            byte[] offsetRaw = BitConverter.GetBytes((int)offset);
-            byte[] result = new byte[5];
-            result[0] = 0xE8;
+            byte[] toRaw = BitConverter.GetBytes(to.ToInt64());
+            Array.Copy(toRaw, 0, result, 2, toRaw.Length);
 
-            Array.Copy(offsetRaw, 0, result, 1, offsetRaw.Length);
+            result[10] = 0xFF;
+            result[11] = 0xD0;
 
             return result;
+            //}
+            //else
+            //{
+            //    byte[] offsetRaw = BitConverter.GetBytes((int)offset);
+            //    byte[] result = new byte[5];
+            //    result[0] = 0xE8;
+
+            //    Array.Copy(offsetRaw, 0, result, 1, offsetRaw.Length);
+
+            //    return result;
+            //}
         }
 
         public static IntPtr JmpToOffcet(this IntPtr address, byte[] value)
@@ -81,20 +93,30 @@ namespace NetHook.Core
         {
             long offset = to - (long)from - 5;
 
-            if (offset > int.MaxValue || offset < int.MinValue)
-            {
-                Console.WriteLine(from.ToHex());
-                Console.WriteLine(to.ToHex());
-                throw new ArgumentOutOfRangeException("offset is not 4 bytes");
-            }
+            //if (offset > int.MaxValue || offset < int.MinValue)
+            //{
+            byte[] result = new byte[12];
+            result[0] = 0x48;
+            result[1] = 0xB8;
 
-            byte[] offsetRaw = BitConverter.GetBytes((int)offset);
-            byte[] result = new byte[5];
-            result[0] = 0xE9;
+            byte[] toRaw = BitConverter.GetBytes(to);
+            Array.Copy(toRaw, 0, result, 2, toRaw.Length);
 
-            Array.Copy(offsetRaw, 0, result, 1, offsetRaw.Length);
+            result[10] = 0xFF;
+            result[11] = 0xE0;
 
             return result;
+            //}
+            //else
+            //{
+            //    byte[] offsetRaw = BitConverter.GetBytes((int)offset);
+            //    byte[] result = new byte[5];
+            //    result[0] = 0xE9;
+
+            //    Array.Copy(offsetRaw, 0, result, 1, offsetRaw.Length);
+
+            //    return result;
+            //}
         }
 
 

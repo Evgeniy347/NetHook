@@ -233,6 +233,12 @@ namespace NetHook.Core
                 handler.BeforeInvoke(Get(methodID), instance, arguments);
         }
 
+        public object InvokeMethod(string methodID, object instance, object[] arguments)
+        {
+            MethodInfo method = Get(methodID);
+            return method.Invoke(instance, arguments);
+        }
+
         public void AfterInvoke(string methodID, object instance, object @return, Exception ex)
         {
             foreach (var handler in Handlers)

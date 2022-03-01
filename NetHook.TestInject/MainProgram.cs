@@ -61,7 +61,9 @@ namespace NetHook.TestInject
                     {
                         try
                         {
-                            Console.ReadLine();
+                            if (Console.ReadLine() == "1")
+                                return;
+
                             j++;
                             string jStr = j.ToString();
                             switch (indexStr)

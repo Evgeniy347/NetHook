@@ -16,39 +16,38 @@ namespace LocalHookProviders
     using System.Runtime.ConstrainedExecution;
     
     
-    public sealed class LocalHookProvider_TestStaticMethod_0 : NetHook.Core.LocalHookRuntimeInstance
+    public sealed class LocalHookProvider_TestInstanceMethod_0 : NetHook.Core.LocalHookRuntimeInstance
     {
         
-        public LocalHookProvider_TestStaticMethod_0(NetHook.Core.LocalHookAdapter adapter) : 
-                base(LocalHookAdapter.Current.Get("NetHook.MSTest.UnitTestLocalHook+TestInstance, NetHook.MSTest, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null;TestStaticMethod"),  typeof(LocalHookProvider_TestStaticMethod_0).GetMethod("TestStaticMethod_Hook", BindingFlags.Static | BindingFlags.NonPublic))
+        public LocalHookProvider_TestInstanceMethod_0(NetHook.Core.LocalHookAdapter adapter) : 
+                base(LocalHookAdapter.Current.Get("NetHook.MSTest.UnitTestLocalHook+TestInstance, NetHook.MSTest, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null;TestInstanceMethod"),  typeof(LocalHookProvider_TestInstanceMethod_0).GetMethod("TestInstanceMethod_Hook", BindingFlags.Static | BindingFlags.NonPublic))
         {
         }
         
-        private static object TestStaticMethod_Hook(object arg_0)
+        private static object TestInstanceMethod_Hook(object thisObj, object arg_0)
         {
             object[] objectArray = new object[] { arg_0 };
             object value = IntPtr.Zero;
             Exception e = null;
-            object thisObj = null;
-            LocalHookAdapter.Current.BeginInvoke("NetHook.MSTest.UnitTestLocalHook+TestInstance, NetHook.MSTest, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null;TestStaticMethod", thisObj, objectArray);
+            LocalHookAdapter.Current.BeginInvoke("NetHook.MSTest.UnitTestLocalHook+TestInstance, NetHook.MSTest, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null;TestInstanceMethod", thisObj, objectArray);
             try
             {
-                if (objectArray.Length >= 0) value = TestStaticMethod_Hook(arg_0);
-                else if (objectArray.Length == -1) value = TestStaticMethod_Hook(arg_0);
-                else if (objectArray.Length == -2) value = TestStaticMethod_Hook(arg_0);
-                else if (objectArray.Length == -3) value = TestStaticMethod_Hook(arg_0);
-                else if (objectArray.Length == -4) value = TestStaticMethod_Hook(arg_0);
-                else if (objectArray.Length == -5) value = TestStaticMethod_Hook(arg_0);
-                else if (objectArray.Length == -6) value = TestStaticMethod_Hook(arg_0);
-                else if (objectArray.Length == -7) value = TestStaticMethod_Hook(arg_0);
-                else if (objectArray.Length == -8) value = TestStaticMethod_Hook(arg_0);
-                else if (objectArray.Length == -9) value = TestStaticMethod_Hook(arg_0);
-                else if (objectArray.Length == -10) value = TestStaticMethod_Hook(arg_0);
-                else if (objectArray.Length == -11) value = TestStaticMethod_Hook(arg_0);
-                else if (objectArray.Length == -12) value = TestStaticMethod_Hook(arg_0);
-                else if (objectArray.Length == -13) value = TestStaticMethod_Hook(arg_0);
-                else if (objectArray.Length == -14) value = TestStaticMethod_Hook(arg_0);
-                else value = TestStaticMethod_Hook(arg_0);
+                if (objectArray.Length >= 0) value = TestInstanceMethod_Hook(thisObj, arg_0);
+                else if (objectArray.Length == -1) value = TestInstanceMethod_Hook(thisObj, arg_0);
+                else if (objectArray.Length == -2) value = TestInstanceMethod_Hook(thisObj, arg_0);
+                else if (objectArray.Length == -3) value = TestInstanceMethod_Hook(thisObj, arg_0);
+                else if (objectArray.Length == -4) value = TestInstanceMethod_Hook(thisObj, arg_0);
+                else if (objectArray.Length == -5) value = TestInstanceMethod_Hook(thisObj, arg_0);
+                else if (objectArray.Length == -6) value = TestInstanceMethod_Hook(thisObj, arg_0);
+                else if (objectArray.Length == -7) value = TestInstanceMethod_Hook(thisObj, arg_0);
+                else if (objectArray.Length == -8) value = TestInstanceMethod_Hook(thisObj, arg_0);
+                else if (objectArray.Length == -9) value = TestInstanceMethod_Hook(thisObj, arg_0);
+                else if (objectArray.Length == -10) value = TestInstanceMethod_Hook(thisObj, arg_0);
+                else if (objectArray.Length == -11) value = TestInstanceMethod_Hook(thisObj, arg_0);
+                else if (objectArray.Length == -12) value = TestInstanceMethod_Hook(thisObj, arg_0);
+                else if (objectArray.Length == -13) value = TestInstanceMethod_Hook(thisObj, arg_0);
+                else if (objectArray.Length == -14) value = TestInstanceMethod_Hook(thisObj, arg_0);
+                else value = TestInstanceMethod_Hook(thisObj, arg_0);
             }
             catch (System.Exception ex)
             {
@@ -57,7 +56,7 @@ namespace LocalHookProviders
             }
             finally
             {
-                LocalHookAdapter.Current.AfterInvoke("NetHook.MSTest.UnitTestLocalHook+TestInstance, NetHook.MSTest, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null;TestStaticMethod", thisObj, value, e);
+                LocalHookAdapter.Current.AfterInvoke("NetHook.MSTest.UnitTestLocalHook+TestInstance, NetHook.MSTest, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null;TestInstanceMethod", thisObj, value, e);
             }
             return value;
         }

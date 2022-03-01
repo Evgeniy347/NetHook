@@ -36,6 +36,12 @@ namespace NetHook.Core
         public byte[] ToArray()
         {
             byte[] res = _frameInstractions.SelectMany(x => x.Value).ToArray();
+            return res;
+        }
+
+        public byte[] ToArrayWhithNops()
+        {
+            byte[] res = _frameInstractions.SelectMany(x => x.Value).ToArray();
 
             if (_maxSize > 0)
             {
@@ -109,7 +115,6 @@ namespace NetHook.Core
         public static byte[] InjectOrig(Memory memory, IntPtr methodAddress, byte[] origByte, IntPtr to)
         {
             List<byte[]> resultInstruction = new List<byte[]>();
-            int i = 0;
             Instruction[] instructions = memory.GetInstruction(methodAddress).ToArray();
 
             Instruction[][] callInstructionsGroups = instructions.Reverse()
@@ -135,7 +140,7 @@ namespace NetHook.Core
             memoryInstractions.Add(origByte);
             memoryInstractions.AddJMP(to);
 
-            resultInstruction.Add(memoryInstractions.ToArray());
+            resultInstruction.Add(memoryInstractions.ToArrayWhithNops());
 
             resultInstruction.AddRange(instructions.SkipWhile(x => x != lastInstruction).Select(x => x.Bytes));
 
@@ -238,58 +243,92 @@ namespace NetHook.Core
 
         public static string GetDisassemble(byte[] orig, byte[] newValue, IntPtr address)
         {
-            string[] valueOrig = GetDisassemble(orig, address, false);
+            Instruction[] valueOrig = GetDisassemble(orig, address, false);
 
-            string[] valueNew = GetDisassemble(newValue, address, true);
+            Instruction[] valueNew = GetDisassemble(newValue, address, true);
+
+            int maxInstruction = orig.Length > newValue.Length ? orig.Length : newValue.Length;
+
+            InstructionAddress[] groupInstruction = new InstructionAddress[maxInstruction];
+
+            List<InstructionAddress> instructionAddresses = new List<InstructionAddress>();
 
             StringBuilder result = new StringBuilder();
-            for (int i = 0; i < valueOrig.Length || i < valueNew.Length; i++)
+
+            AddInstructions(address, valueOrig, instructionAddresses, true);
+            AddInstructions(address, valueNew, instructionAddresses, false);
+
+            int padByteOrig = valueOrig.Length == 0 ? 0 : valueOrig.Max(x => x.Length) * 3;
+            int padByteNew = valueNew.Length == 0 ? 0 : valueNew.Max(x => x.Length) * 3;
+            int padOrigInstruction = valueOrig.Length == 0 ? 0 : valueOrig.Max(x => x.ToString().Length) + 1;
+            int padNewInstruction = valueNew.Length == 0 ? 0 : valueNew.Max(x => x.ToString().Length) + 1;
+
+            int i = 0;
+            foreach (InstructionAddress instructionAddress in instructionAddresses.OrderBy(x => x.Address.ToInt64()))
             {
-                string origLine = i < valueOrig.Length ? valueOrig[i] : string.Empty;
-                string newLine = i < valueNew.Length ? valueNew[i] : string.Empty;
+                string origLine = GetStringInstruction(instructionAddress.OrigInstruction, padByteOrig, padOrigInstruction);
+                string newLine = GetStringInstruction(instructionAddress.NewInstruction, padByteNew, padNewInstruction);
 
-                bool eq = origLine?.Split('|')?.LastOrDefault()?.Trim() == newLine?.Split('|')?.LastOrDefault()?.Trim();
+                string eq = origLine?.Split('|')?.LastOrDefault()?.Trim() == newLine?.Split('|')?.LastOrDefault()?.Trim() ? " " : "X";
 
-                result.AppendLine($"{i,2}|{(eq ? " " : "X")}| {origLine}| {newLine.TrimEnd()}");
+                result.AppendLine($"{i,2}|{eq}| {origLine}| {instructionAddress.Address.ToHex()} | {newLine.TrimEnd()}");
             }
 
             return result.ToString();
         }
 
-        private static string[] GetDisassemble(byte[] orig, IntPtr address, bool addAddress)
+        private static string GetStringInstruction(Instruction instruction, int padByte, int padInstruction)
+        {
+            if (instruction == null)
+                return new string(' ', padByte + padInstruction + 1);
+            return $"{instruction.Bytes.ToHexArray().PadRight(padByte)} {instruction.ToString().PadRight(padInstruction)}";
+        }
+
+        private static void AddInstructions(IntPtr address, Instruction[] instructions, List<InstructionAddress> instructionAddresses, bool isOrig)
+        {
+            IntPtr len = address;
+            foreach (Instruction instruction in instructions)
+            {
+                InstructionAddress instructionAddress = instructionAddresses.FirstOrDefault(x => x.Address == len);
+                if (instructionAddress == null)
+                {
+                    instructionAddress = new InstructionAddress() { Address = len };
+                    instructionAddresses.Add(instructionAddress);
+                }
+
+                if (isOrig)
+                    instructionAddress.OrigInstruction = instruction;
+                else
+                    instructionAddress.NewInstruction = instruction;
+
+                len = len.Add(instruction.Length);
+            }
+        }
+
+        public class InstructionAddress
+        {
+            public IntPtr Address { get; set; }
+
+            public Instruction OrigInstruction { get; set; }
+
+            public Instruction NewInstruction { get; set; }
+        }
+
+        private static Instruction[] GetDisassemble(byte[] orig, IntPtr address, bool addAddress)
         {
             if (orig.Length == 0)
-                return new string[0];
+                return new Instruction[0];
 
-            var instructions = new Disassembler(code: orig,
+            Instruction[] instructions = new Disassembler(code: orig,
                        architecture: ArchitectureMode.x86_64,
                        address: (ulong)address,
                        copyBinaryToInstruction: true)
                        .Disassemble()
                        .ToArray();
 
-            int pad = instructions.Length == 0 ? 0 : instructions.Max(x => x.Length) * 3;
-
-            int i = 0;
-
-            string[] valueOrig = instructions
-                .Select(x => $"{(GetAddress(address, addAddress, x, ref i))}{x.Bytes.ToHexArray().PadRight(pad)} {x}")
-                .ToArray();
-
-            pad = valueOrig.Length == 0 ? 0 : valueOrig.Max(x => x.Length);
-
-            valueOrig = valueOrig.Select(x => x.PadRight(pad)).ToArray();
-
-            return valueOrig;
+            return instructions;
         }
 
-
-        private static string GetAddress(IntPtr address, bool addAddress, Instruction x, ref int i)
-        {
-            string result = addAddress ? address.Add(i).ToHex() + " | " : "";
-            i += x.Length;
-            return result;
-        }
 
         internal void CheckNop(int length)
         {
